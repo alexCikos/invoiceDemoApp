@@ -13,7 +13,7 @@ export async function hello(
 
   const name = request.query.get("name") || (await request.text()) || "world";
 
-  return { body: `Hello, ${name}! this is new change test your seeing now` };
+  return { body: `Hello, ${name}! this is new change test your seeing` };
 }
 
 app.http("hello", {
