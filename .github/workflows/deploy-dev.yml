@@ -42,8 +42,18 @@ jobs:
           npm ci
           npm run build
 
+      # Create a deterministic deployable artifact
+      - name: Create deployment package (zip)
+        run: |
+          cd my-func-api
+          zip -r ../functionapp.zip . \
+            -x "**/.git/**" \
+            -x "**/.github/**" \
+            -x "**/.vscode/**" \
+            -x "**/node_modules/.cache/**"
+
       - name: Deploy Function App code
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ vars.FUNCTIONAPP_NAME }}
-          package: my-func-api
+          package: functionapp.zip
