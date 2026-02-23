@@ -39,7 +39,7 @@ resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
   }
 }
 
-// ---- User Assigned Managed Identity (stable identity for RBAC) ----
+// ---- User Assigned Managed Identity (stable identity for future RBAC) ----
 resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: uamiName
   location: location
@@ -63,7 +63,7 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
       ftpsState: 'Disabled'
       linuxFxVersion: 'Node|20'
       appSettings: [
-        // ✅ Host storage using connection string (works with Core Tools publish)
+        // Host storage using connection string (works with Core Tools and GitHub Actions deploy)
         {
           name: 'AzureWebJobsStorage'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
@@ -79,48 +79,6 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
         { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
       ]
     }
-  }
-}
-
-// ---- Role assignments (scope: storage account) ----
-// You can keep these for later when your FUNCTION CODE uses Managed Identity to access storage.
-
-resource storageBlobOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storage.id, uami.id, 'storage-blob-data-owner')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      'b7e6dc6d-f1e8-4753-8033-0f276bb0955b' // Storage Blob Data Owner
-    )
-    principalId: uami.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource storageQueueRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storage.id, uami.id, 'storage-queue-data-contributor')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '974c5e8b-45b9-4653-ba55-5f855dd0fb88' // Storage Queue Data Contributor
-    )
-    principalId: uami.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource storageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storage.id, uami.id, 'storage-account-contributor')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '17d1049b-9a84-46fb-8f53-869881c3d3ab' // Storage Account Contributor
-    )
-    principalId: uami.properties.principalId
-    principalType: 'ServicePrincipal'
   }
 }
 
