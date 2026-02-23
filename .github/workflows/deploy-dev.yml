@@ -1,0 +1,49 @@
+name: Deploy Dev (Infra + Function)
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy infrastructure (Bicep)
+        run: |
+          az deployment group create \
+            -g "${{ vars.AZURE_RG }}" \
+            -f infra/main.bicep \
+            -p namePrefix=${{ vars.NAME_PREFIX }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install + build function
+        working-directory: my-func-api
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy Function App code
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.FUNCTIONAPP_NAME }}
+          package: my-func-api
