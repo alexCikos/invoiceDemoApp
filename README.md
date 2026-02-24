@@ -28,15 +28,16 @@ az account set --subscription <subscription-id>
 az provider register --namespace Microsoft.KeyVault
 ```
 
-5. Set GitHub environment variables for `dev`:
+5. Create a deployment Entra app registration (OIDC) and grant it `Contributor` on the target resource group.
+6. Set GitHub environment variables for `dev`:
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 - `AZURE_RG`
-6. Push to `dev` to trigger deployment.
-7. Configure `prod` GitHub environment with the same variable names and prod values, then push/merge to `main` for production rollout.
+7. Push to `dev` to trigger deployment.
+8. Configure `prod` GitHub environment with the same variable names and prod values, then push/merge to `main` for production rollout.
 
-8. Update parameter files for infrastructure naming and environment config:
+9. Update parameter files for infrastructure naming and environment config:
 - `infra/main.parameters.dev.json`
 - `infra/main.parameters.prod.json`
 

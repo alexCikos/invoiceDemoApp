@@ -182,15 +182,57 @@ Create environment `prod` with the same variable names, but production values:
 
 - `AZURE_RG` should be production resource group.
 
-### 5.8 Configure Federated Credential (OIDC)
+Important:
+- `AZURE_CLIENT_ID` must be the **deployment app registration** client ID (not the Function App managed identity client ID).
+
+### 5.8 Create Deployment App Identity (Entra App Registration)
+
+Create one Entra app registration per environment (recommended), for example:
+- `gh-deployer-<client>-dev`
+- `gh-deployer-<client>-prod`
+
+Capture:
+- Application (client) ID -> `AZURE_CLIENT_ID`
+- Directory (tenant) ID -> `AZURE_TENANT_ID`
+
+If needed, create a service principal for the app registration:
+
+```bash
+az ad sp create --id <AZURE_CLIENT_ID>
+```
+
+### 5.9 Configure Federated Credential (OIDC)
 
 In the deployment Entra app registration:
 
 1. Add federated credential.
 2. Scenario: GitHub Actions deploying Azure resources.
 3. Scope must match org/repo/environment used by workflow.
+4. Example subject values:
+   - `repo:<org>/<repo>:environment:dev`
+   - `repo:<org>/<repo>:environment:prod`
 
-### 5.9 First Deployment
+### 5.10 Grant Azure RBAC to Deployment Identity
+
+Grant Contributor on the target resource group (run once per environment):
+
+```bash
+az role assignment create \
+  --assignee <AZURE_CLIENT_ID> \
+  --role Contributor \
+  --scope /subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<AZURE_RG>
+```
+
+Verify:
+
+```bash
+az role assignment list \
+  --assignee <AZURE_CLIENT_ID> \
+  --scope /subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<AZURE_RG> \
+  -o table
+```
+
+### 5.11 First Deployment
 
 ```bash
 git checkout -b dev
@@ -201,7 +243,7 @@ git push -u origin dev
 
 Then monitor Actions tab for `Deploy Dev (Infra + Function)`.
 
-### 5.10 Production Deployment Setup
+### 5.12 Production Deployment Setup
 
 1. Bootstrap production resources (separate RG recommended):
 
@@ -420,6 +462,12 @@ Priority upgrades:
 
 - OIDC login fails (`AADSTS700213`):
 - Federated credential subject/repo/environment mismatch. Recheck exact values.
+
+- Azure login step fails with `No subscriptions found for ***`:
+- Usually means the deployment app identity lacks RBAC on the target scope, or the workflow is using the wrong tenant/subscription/app ID.
+- Recheck:
+  - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RG` in the GitHub environment.
+  - Contributor assignment exists for `<AZURE_CLIENT_ID>` on the target resource group.
 
 - Infrastructure deploy fails with `MissingSubscriptionRegistration` for `Microsoft.KeyVault`:
 - The subscription has not registered the Key Vault resource provider yet.
