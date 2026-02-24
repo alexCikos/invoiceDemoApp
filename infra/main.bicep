@@ -19,6 +19,9 @@ param environmentName string = 'dev'
 @description('Optional extra tags merged onto all resources')
 param tags object = {}
 
+@description('Create Key Vault RBAC role assignment for the Function managed identity. Requires roleAssignments/write permission.')
+param enableKeyVaultRoleAssignment bool = false
+
 // Normalize the prefix once so names are predictable and valid across resources.
 var normalizedPrefix = toLower(replace(replace(namePrefix, '-', ''), '_', ''))
 var suffix = uniqueString(resourceGroup().id)
@@ -191,6 +194,7 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
 var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
 
 resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  if (enableKeyVaultRoleAssignment)
   name: guid(keyVault.id, uami.id, keyVaultSecretsUserRoleDefinitionId)
   scope: keyVault
   properties: {
@@ -207,3 +211,4 @@ output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output identityClientId string = uami.properties.clientId
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
+output keyVaultRoleAssignmentEnabled bool = enableKeyVaultRoleAssignment

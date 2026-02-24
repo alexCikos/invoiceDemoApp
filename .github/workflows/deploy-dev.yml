@@ -39,7 +39,7 @@ jobs:
           FUNCTION_APP_NAME=$(az deployment group create \
             -g "${{ vars.AZURE_RG }}" \
             -f infra/main.bicep \
-            -p namePrefix="${{ vars.NAME_PREFIX }}" environmentName="${{ vars.ENVIRONMENT_NAME || 'dev' }}" \
+            -p namePrefix="${{ vars.NAME_PREFIX }}" environmentName="${{ vars.ENVIRONMENT_NAME || 'dev' }}" enableKeyVaultRoleAssignment="${{ vars.ENABLE_KEYVAULT_ROLE_ASSIGNMENT || 'false' }}" \
             --query "properties.outputs.functionAppResourceName.value" \
             -o tsv)
 

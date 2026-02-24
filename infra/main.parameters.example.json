@@ -11,6 +11,9 @@
     "environmentName": {
       "value": "dev"
     },
+    "enableKeyVaultRoleAssignment": {
+      "value": false
+    },
     "tags": {
       "value": {
         "client": "acme",

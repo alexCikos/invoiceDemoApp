@@ -131,6 +131,7 @@ Create environment `dev` and set:
 - `AZURE_RG`
 - `NAME_PREFIX`
 - `ENVIRONMENT_NAME` (example: `dev`)
+- `ENABLE_KEYVAULT_ROLE_ASSIGNMENT` (default `false`; set `true` only if deploy identity has RBAC assignment permissions)
 
 ### 5.6 Configure Federated Credential (OIDC)
 In the deployment Entra app registration:
@@ -314,6 +315,13 @@ Priority upgrades:
 
 - OIDC login fails (`AADSTS700213`):
 - Federated credential subject/repo/environment mismatch. Recheck exact values.
+
+- Infrastructure deploy fails on `Microsoft.Authorization/roleAssignments/write`:
+- Your deploy identity has resource deployment rights but not RBAC assignment rights.
+- Keep `ENABLE_KEYVAULT_ROLE_ASSIGNMENT=false` (default), or grant one of these roles at RG/subscription scope:
+  - `User Access Administrator`
+  - `Role Based Access Control Administrator`
+  - `Owner`
 
 - Workflow cannot find function app output:
 - Confirm `functionAppResourceName` output exists and deployment succeeded.

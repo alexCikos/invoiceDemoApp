@@ -16,6 +16,7 @@ RESOURCE_GROUP="$2"
 LOCATION="$3"
 NAME_PREFIX="$4"
 ENVIRONMENT_NAME="${5:-dev}"
+ENABLE_KEYVAULT_ROLE_ASSIGNMENT="${ENABLE_KEYVAULT_ROLE_ASSIGNMENT:-false}"
 DEPLOYMENT_NAME="bootstrap-${NAME_PREFIX}-${ENVIRONMENT_NAME}-$(date +%Y%m%d%H%M%S)"
 
 for cmd in az; do
@@ -43,7 +44,7 @@ az deployment group create \
   --name "$DEPLOYMENT_NAME" \
   --resource-group "$RESOURCE_GROUP" \
   --template-file infra/main.bicep \
-  --parameters namePrefix="$NAME_PREFIX" environmentName="$ENVIRONMENT_NAME" location="$LOCATION" >/dev/null
+  --parameters namePrefix="$NAME_PREFIX" environmentName="$ENVIRONMENT_NAME" location="$LOCATION" enableKeyVaultRoleAssignment="$ENABLE_KEYVAULT_ROLE_ASSIGNMENT" >/dev/null
 
 FUNCTION_APP_NAME=$(az deployment group show \
   --name "$DEPLOYMENT_NAME" \
@@ -86,6 +87,7 @@ Set these GitHub Environment variables (environment: $ENVIRONMENT_NAME):
 - AZURE_RG=$RESOURCE_GROUP
 - NAME_PREFIX=$NAME_PREFIX
 - ENVIRONMENT_NAME=$ENVIRONMENT_NAME
+- ENABLE_KEYVAULT_ROLE_ASSIGNMENT=$ENABLE_KEYVAULT_ROLE_ASSIGNMENT
 
 Next:
 1. Configure federated credential for your repo + environment in Entra ID.
