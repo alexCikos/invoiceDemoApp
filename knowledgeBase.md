@@ -1,4 +1,4 @@
-# Cloud Consultancy Template Knowledge Base
+# Cloud Consultancy Template Knowledge Base.
 
 This repository is a **client-delivery template** for deploying an Azure Function solution with:
 - Infrastructure as Code (Bicep)
