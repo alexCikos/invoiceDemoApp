@@ -1,6 +1,7 @@
 # Node / TS
 node_modules/
 dist/
+functionapp.zip
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

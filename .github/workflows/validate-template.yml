@@ -1,0 +1,42 @@
+name: Validate Template
+
+on:
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: my-func-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: my-func-api
+        run: npm ci
+
+      - name: TypeScript checks
+        working-directory: my-func-api
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Validate Bicep syntax
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            # Build validates template syntax and catches most authoring mistakes.
+            az bicep build --file infra/main.bicep

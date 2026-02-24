@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "validate": "npm run typecheck && npm run build",
     "watch": "tsc -w",
     "clean": "rimraf dist",
     "prestart": "npm run clean && npm run build",
@@ -17,12 +18,11 @@
     "@azure/functions": "^4.0.0"
   },
   "devDependencies": {
-    "azure-functions-core-tools": "^4.x",
     "@types/node": "18.x",
     "typescript": "^5.0.0",
     "rimraf": "^5.0.0"
   },
   "engines": {
-    "node": ">=20 <21"
+    "node": ">=22 <23"
   }
 }

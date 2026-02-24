@@ -3,15 +3,22 @@ name: Deploy Dev (Infra + Function)
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: deploy-dev-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      AZURE_CORE_OUTPUT: none
 
     steps:
       - name: Checkout
@@ -32,7 +39,7 @@ jobs:
           FUNCTION_APP_NAME=$(az deployment group create \
             -g "${{ vars.AZURE_RG }}" \
             -f infra/main.bicep \
-            -p namePrefix="${{ vars.NAME_PREFIX }}" \
+            -p namePrefix="${{ vars.NAME_PREFIX }}" environmentName="${{ vars.ENVIRONMENT_NAME || 'dev' }}" \
             --query "properties.outputs.functionAppResourceName.value" \
             -o tsv)
 
@@ -46,7 +53,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
+          cache-dependency-path: my-func-api/package-lock.json
 
       - name: Install + build function
         working-directory: my-func-api

@@ -7,6 +7,9 @@ import {
 
 const DEFAULT_NAME = "world";
 const MAX_NAME_LENGTH = 80;
+// These come from Function App settings provisioned by Bicep.
+const CLIENT_CODE = process.env.CLIENT_CODE ?? "demo";
+const ENVIRONMENT_NAME = process.env.ENVIRONMENT_NAME ?? "local";
 
 // Normalize user-provided names so responses stay predictable and safe to log.
 function sanitizeName(input: string | null | undefined): string | null {
@@ -69,6 +72,8 @@ export async function hello(
     status: 200,
     jsonBody: {
       message: `Hello, ${name}!`,
+      clientCode: CLIENT_CODE,
+      environment: ENVIRONMENT_NAME,
       invocationId: context.invocationId,
     },
   };

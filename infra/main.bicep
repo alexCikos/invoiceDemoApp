@@ -3,59 +3,131 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources')
 param location string = resourceGroup().location
 
-@description('Prefix for all resource names. Use letters/numbers and optional hyphens.')
+@description('Client/resource prefix. Use lowercase letters, numbers, and optional hyphens.')
 @minLength(2)
 @maxLength(20)
 param namePrefix string
 
-// Normalize the prefix once so resource naming is predictable and reusable.
+@description('Deployment environment label used in names and tags')
+@allowed([
+  'dev'
+  'test'
+  'prod'
+])
+param environmentName string = 'dev'
+
+@description('Optional extra tags merged onto all resources')
+param tags object = {}
+
+// Normalize the prefix once so names are predictable and valid across resources.
 var normalizedPrefix = toLower(replace(replace(namePrefix, '-', ''), '_', ''))
 var suffix = uniqueString(resourceGroup().id)
 
-// Storage account name rules: 3-24 chars, lowercase + numbers only (no hyphens).
-// Keep max 9 chars from prefix because "sa" + 9 + 13-char suffix = 24 chars.
-var storageName = 'sa${take(normalizedPrefix, 9)}${suffix}'
+// Resource-name safety guards for platform-specific constraints.
+var storageName = take('sa${normalizedPrefix}${suffix}', 24)
+var keyVaultName = toLower(take('kv${normalizedPrefix}${substring(suffix, 0, 10)}', 24))
+var functionAppName = toLower(take('func-${normalizedPrefix}-${environmentName}-${suffix}', 60))
+var planName = toLower(take('${normalizedPrefix}-${environmentName}-asp', 40))
+var uamiName = toLower(take('${normalizedPrefix}-${environmentName}-uami', 64))
+var logAnalyticsName = toLower(take('${normalizedPrefix}-${environmentName}-law', 63))
+var appInsightsName = toLower(take('${normalizedPrefix}-${environmentName}-appi', 260))
 
-// Function App name: globally unique
-var functionAppName = toLower('func-${take(namePrefix, 20)}-${suffix}')
+var commonTags = union({
+  workload: 'invoice-tracker'
+  environment: environmentName
+  managedBy: 'bicep'
+}, tags)
 
-var uamiName = toLower('${take(namePrefix, 20)}-uami')
-
-// ---- Storage (required for Functions) ----
+// ---- Storage account (host storage for Functions) ----
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageName
   location: location
-  sku: { name: 'Standard_LRS' }
+  tags: commonTags
+  sku: {
+    name: 'Standard_LRS'
+  }
   kind: 'StorageV2'
   properties: {
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
   }
 }
 
-// ---- Hosting plan (Consumption / serverless) ----
-resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: '${namePrefix}-asp'
+// ---- Log Analytics workspace (required for workspace-based App Insights) ----
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: logAnalyticsName
   location: location
+  tags: commonTags
+  properties: {
+    retentionInDays: 30
+    features: {
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+}
+
+// ---- Application Insights (connection-string based telemetry target) ----
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  tags: commonTags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
+  }
+}
+
+// ---- Hosting plan (Linux Consumption) ----
+resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
+  name: planName
+  location: location
+  tags: commonTags
   sku: {
     name: 'Y1'
     tier: 'Dynamic'
   }
   properties: {
-    reserved: true // required for Linux
+    reserved: true // Required for Linux workers.
   }
 }
 
-// ---- User Assigned Managed Identity (stable identity for future RBAC) ----
+// ---- User-assigned managed identity (stable runtime identity) ----
 resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: uamiName
   location: location
+  tags: commonTags
 }
 
-// ---- Function App (Linux) ----
+// ---- Key Vault (for client secrets/config referenced by app settings) ----
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
+  name: keyVaultName
+  location: location
+  tags: commonTags
+  properties: {
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true
+    enabledForDeployment: false
+    enabledForTemplateDeployment: false
+    enabledForDiskEncryption: false
+    publicNetworkAccess: 'Enabled'
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    softDeleteRetentionInDays: 90
+  }
+}
+
+// ---- Function App ----
 resource func 'Microsoft.Web/sites@2023-01-01' = {
   name: functionAppName
   location: location
+  tags: commonTags
   kind: 'functionapp,linux'
   identity: {
     type: 'UserAssigned'
@@ -68,27 +140,70 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
     httpsOnly: true
     siteConfig: {
       ftpsState: 'Disabled'
-      linuxFxVersion: 'Node|20'
+      minTlsVersion: '1.2'
+      linuxFxVersion: 'Node|22'
       appSettings: [
-        // Host storage using connection string (works with Core Tools and GitHub Actions deploy)
+        // Host storage account connection for Functions runtime.
         {
           name: 'AzureWebJobsStorage'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         }
 
-        // Functions runtime version
-        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        // Functions runtime config.
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'node'
+        }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
 
-        // Node worker
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'node' }
+        // App Insights uses connection strings (recommended over instrumentation key).
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
 
-        // Standard package/zip deployment mode (works well with GitHub Actions)
-        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
+        // Useful application metadata surfaced to the function runtime.
+        {
+          name: 'KEY_VAULT_URI'
+          value: keyVault.properties.vaultUri
+        }
+        {
+          name: 'CLIENT_CODE'
+          value: normalizedPrefix
+        }
+        {
+          name: 'ENVIRONMENT_NAME'
+          value: environmentName
+        }
       ]
     }
   }
 }
 
-output storageAccountName string = storage.name
+// Grant runtime identity read access to Key Vault secrets (RBAC mode).
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+
+resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, uami.id, keyVaultSecretsUserRoleDefinitionId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
+    principalId: uami.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 output functionAppResourceName string = func.name
+output functionAppDefaultHostName string = func.properties.defaultHostName
+output storageAccountName string = storage.name
+output keyVaultName string = keyVault.name
+output keyVaultUri string = keyVault.properties.vaultUri
 output identityClientId string = uami.properties.clientId
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
