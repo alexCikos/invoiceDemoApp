@@ -25,11 +25,23 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy infrastructure (Bicep)
+        id: infra
         run: |
-          az deployment group create \
+          # Deploy infra first, then pull the function app name from Bicep outputs
+          # so app deploy always targets the exact resource created by IaC.
+          FUNCTION_APP_NAME=$(az deployment group create \
             -g "${{ vars.AZURE_RG }}" \
             -f infra/main.bicep \
-            -p namePrefix=${{ vars.NAME_PREFIX }}
+            -p namePrefix="${{ vars.NAME_PREFIX }}" \
+            --query "properties.outputs.functionAppResourceName.value" \
+            -o tsv)
+
+          if [ -z "$FUNCTION_APP_NAME" ]; then
+            echo "Bicep output functionAppResourceName is empty." >&2
+            exit 1
+          fi
+
+          echo "FUNCTION_APP_NAME=$FUNCTION_APP_NAME" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -41,19 +53,22 @@ jobs:
         run: |
           npm ci
           npm run build
+          # Keep deployment package small and production-focused.
+          npm prune --omit=dev
 
       # Create a deterministic deployable artifact
       - name: Create deployment package (zip)
         run: |
           cd my-func-api
-          zip -r ../functionapp.zip . \
+          zip -r ../functionapp.zip host.json package.json package-lock.json dist node_modules \
             -x "**/.git/**" \
             -x "**/.github/**" \
             -x "**/.vscode/**" \
+            -x "**/local.settings.json" \
             -x "**/node_modules/.cache/**"
 
       - name: Deploy Function App code
         uses: Azure/functions-action@v1
         with:
-          app-name: ${{ vars.FUNCTIONAPP_NAME }}
+          app-name: ${{ env.FUNCTION_APP_NAME }}
           package: functionapp.zip

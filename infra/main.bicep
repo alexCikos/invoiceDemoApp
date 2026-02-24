@@ -3,16 +3,23 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources')
 param location string = resourceGroup().location
 
-@description('Prefix for all resource names (use lowercase letters/numbers if possible)')
+@description('Prefix for all resource names. Use letters/numbers and optional hyphens.')
+@minLength(2)
+@maxLength(20)
 param namePrefix string
 
-// Storage account name: globally unique, 3-24 chars, lowercase + numbers only (no hyphens)
-var storageName = toLower('sa${namePrefix}${uniqueString(resourceGroup().id)}')
+// Normalize the prefix once so resource naming is predictable and reusable.
+var normalizedPrefix = toLower(replace(replace(namePrefix, '-', ''), '_', ''))
+var suffix = uniqueString(resourceGroup().id)
+
+// Storage account name rules: 3-24 chars, lowercase + numbers only (no hyphens).
+// Keep max 9 chars from prefix because "sa" + 9 + 13-char suffix = 24 chars.
+var storageName = 'sa${take(normalizedPrefix, 9)}${suffix}'
 
 // Function App name: globally unique
-var functionAppName = toLower('func-${namePrefix}-${uniqueString(resourceGroup().id)}')
+var functionAppName = toLower('func-${take(namePrefix, 20)}-${suffix}')
 
-var uamiName = toLower('${namePrefix}-uami')
+var uamiName = toLower('${take(namePrefix, 20)}-uami')
 
 // ---- Storage (required for Functions) ----
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
