@@ -25,8 +25,15 @@ nvm use
   dev
 ```
 
-4. Set GitHub environment variables for `dev`.
-5. Push to `dev` to trigger deployment.
+4. If this is a fresh subscription, register required providers once:
+
+```bash
+az account set --subscription <subscription-id>
+az provider register --namespace Microsoft.KeyVault
+```
+
+5. Set GitHub environment variables for `dev`.
+6. Push to `dev` to trigger deployment.
 
 ## Template Workflows
 

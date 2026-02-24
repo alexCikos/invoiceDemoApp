@@ -91,7 +91,28 @@ az --version
 git --version
 ```
 
-### 5.3 Set Local Node Version
+### 5.3 Register Required Azure Resource Providers (One-Time Per Subscription)
+Run with a subscription-level admin identity:
+
+```bash
+az account set --subscription <subscription-id>
+az provider register --namespace Microsoft.Storage
+az provider register --namespace Microsoft.Web
+az provider register --namespace Microsoft.ManagedIdentity
+az provider register --namespace Microsoft.KeyVault
+az provider register --namespace Microsoft.Insights
+az provider register --namespace Microsoft.OperationalInsights
+```
+
+Confirm at least `Microsoft.KeyVault` is registered:
+
+```bash
+az provider show --namespace Microsoft.KeyVault --query registrationState -o tsv
+```
+
+Expected output: `Registered`.
+
+### 5.4 Set Local Node Version
 
 ```bash
 nvm use
@@ -104,7 +125,7 @@ nvm install 22
 nvm use 22
 ```
 
-### 5.4 Bootstrap Azure Resources
+### 5.5 Bootstrap Azure Resources
 Use the helper script:
 
 ```bash
@@ -123,7 +144,7 @@ The script will:
 4. Print key outputs.
 5. Print the GitHub environment variables you need to configure.
 
-### 5.5 Configure GitHub Environment
+### 5.6 Configure GitHub Environment
 Create environment `dev` and set:
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
@@ -133,13 +154,13 @@ Create environment `dev` and set:
 - `ENVIRONMENT_NAME` (example: `dev`)
 - `ENABLE_KEYVAULT_ROLE_ASSIGNMENT` (default `false`; set `true` only if deploy identity has RBAC assignment permissions)
 
-### 5.6 Configure Federated Credential (OIDC)
+### 5.7 Configure Federated Credential (OIDC)
 In the deployment Entra app registration:
 1. Add federated credential.
 2. Scenario: GitHub Actions deploying Azure resources.
 3. Scope must match org/repo/environment used by workflow.
 
-### 5.7 First Deployment
+### 5.8 First Deployment
 
 ```bash
 git checkout -b dev
@@ -315,6 +336,11 @@ Priority upgrades:
 
 - OIDC login fails (`AADSTS700213`):
 - Federated credential subject/repo/environment mismatch. Recheck exact values.
+
+- Infrastructure deploy fails with `MissingSubscriptionRegistration` for `Microsoft.KeyVault`:
+- The subscription has not registered the Key Vault resource provider yet.
+- Register it once at subscription scope:
+  - `az provider register --namespace Microsoft.KeyVault`
 
 - Infrastructure deploy fails on `Microsoft.Authorization/roleAssignments/write`:
 - Your deploy identity has resource deployment rights but not RBAC assignment rights.
