@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "australiaeast"
+    },
+    "namePrefix": {
+      "value": "acmeinvprd"
+    },
+    "environmentName": {
+      "value": "prod"
+    },
+    "enableKeyVaultRoleAssignment": {
+      "value": false
+    },
+    "tags": {
+      "value": {
+        "client": "acme",
+        "owner": "cloud-consultancy",
+        "costCenter": "invoice-platform",
+        "criticality": "production"
+      }
+    }
+  }
+}

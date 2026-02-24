@@ -34,6 +34,18 @@ az provider register --namespace Microsoft.KeyVault
 
 5. Set GitHub environment variables for `dev`.
 6. Push to `dev` to trigger deployment.
+7. Configure `prod` GitHub environment and push/merge to `main` for production rollout.
+
+Production bootstrap example:
+
+```bash
+./scripts/bootstrap-client.sh \
+  <subscription-id> \
+  rg-<client>-invoice-prod \
+  australiaeast \
+  <clientprefixprod> \
+  prod
+```
 
 ## Template Workflows
 
@@ -41,3 +53,5 @@ az provider register --namespace Microsoft.KeyVault
   - Pull request validation (TypeScript + Bicep syntax).
 - `.github/workflows/deploy-dev.yml`
   - Deploys infrastructure and function code to Azure `dev` environment.
+- `.github/workflows/deploy-prod.yml`
+  - Deploys infrastructure and function code to Azure `prod` environment.

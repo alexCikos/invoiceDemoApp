@@ -27,8 +27,12 @@ When you clone this repo for a new client, you should be able to:
   - Provisions storage, Linux Consumption plan, Function App, user-assigned managed identity, Key Vault, Log Analytics, and Application Insights.
 - `infra/main.parameters.example.json`
   - Copyable parameter file for per-client values.
+- `infra/main.parameters.prod.example.json`
+  - Production-oriented parameter example file.
 - `.github/workflows/deploy-dev.yml`
   - Deploys infra and function code to `dev`.
+- `.github/workflows/deploy-prod.yml`
+  - Deploys infra and function code to `prod`.
 - `.github/workflows/validate-template.yml`
   - PR validation workflow (TypeScript + Bicep syntax checks).
 - `my-func-api/src/functions/hello.ts`
@@ -45,7 +49,9 @@ When you clone this repo for a new client, you should be able to:
 ```mermaid
 flowchart LR
   A["Push to dev"] --> B["GitHub Actions: deploy-dev"]
+  A2["Push to main"] --> B2["GitHub Actions: deploy-prod"]
   B --> C["azure/login via OIDC"]
+  B2 --> C
   C --> D["Deploy Bicep"]
   D --> E["Read Function App output"]
   E --> F["Build TypeScript"]
@@ -154,6 +160,11 @@ Create environment `dev` and set:
 - `ENVIRONMENT_NAME` (example: `dev`)
 - `ENABLE_KEYVAULT_ROLE_ASSIGNMENT` (default `false`; set `true` only if deploy identity has RBAC assignment permissions)
 
+Create environment `prod` with the same variable names, but production values:
+- `AZURE_RG` should be production resource group.
+- `NAME_PREFIX` should be production naming prefix.
+- `ENVIRONMENT_NAME` should be `prod`.
+
 ### 5.7 Configure Federated Credential (OIDC)
 In the deployment Entra app registration:
 1. Add federated credential.
@@ -170,6 +181,24 @@ git push -u origin dev
 ```
 
 Then monitor Actions tab for `Deploy Dev (Infra + Function)`.
+
+### 5.9 Production Deployment Setup
+1. Bootstrap production resources (separate RG and prefix recommended):
+
+```bash
+./scripts/bootstrap-client.sh \
+  <subscription-id> \
+  rg-<client>-invoice-prod \
+  australiaeast \
+  <clientprefixprod> \
+  prod
+```
+
+2. Ensure `prod` GitHub environment exists with required variables.
+3. Add a federated credential for `prod` environment in the deployment app registration.
+4. Configure environment protection rules for `prod` (required reviewers recommended).
+5. Deploy to production by merging/pushing to `main`.
+6. Monitor `Deploy Prod (Infra + Function)` workflow run.
 
 ---
 
@@ -221,9 +250,25 @@ Flow:
 6. Deploy via `Azure/functions-action@v1`.
 
 Security note:
-- `AZURE_CORE_OUTPUT=none` is set at job level to reduce accidental CLI output leakage.
+- `AZURE_CORE_OUTPUT=none` is set on the infra deployment step to reduce accidental CLI output leakage.
 
-### 8.2 `validate-template.yml`
+### 8.2 `deploy-prod.yml`
+Trigger:
+- Push to `main`
+- Manual dispatch
+
+Flow:
+1. Azure login via OIDC.
+2. Deploy infra and fetch function app name from outputs.
+3. Build function code.
+4. Prune dev dependencies.
+5. Zip deployable artifacts.
+6. Deploy via `Azure/functions-action@v1`.
+
+Security note:
+- Use GitHub Environment protection rules on `prod`.
+
+### 8.3 `validate-template.yml`
 Trigger:
 - Pull requests to `dev` or `main`
 - Manual dispatch

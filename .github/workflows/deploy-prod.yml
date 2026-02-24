@@ -1,0 +1,82 @@
+name: Deploy Prod (Infra + Function)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-prod-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy infrastructure (Bicep)
+        id: infra
+        env:
+          AZURE_CORE_OUTPUT: none
+        run: |
+          # Deploy infra first, then pull the function app name from Bicep outputs
+          # so app deploy always targets the exact resource created by IaC.
+          FUNCTION_APP_NAME=$(az deployment group create \
+            -g "${{ vars.AZURE_RG }}" \
+            -f infra/main.bicep \
+            -p namePrefix="${{ vars.NAME_PREFIX }}" environmentName="${{ vars.ENVIRONMENT_NAME || 'prod' }}" enableKeyVaultRoleAssignment="${{ vars.ENABLE_KEYVAULT_ROLE_ASSIGNMENT || 'false' }}" \
+            --query "properties.outputs.functionAppResourceName.value" \
+            -o tsv)
+
+          if [ -z "$FUNCTION_APP_NAME" ]; then
+            echo "Bicep output functionAppResourceName is empty." >&2
+            exit 1
+          fi
+
+          echo "FUNCTION_APP_NAME=$FUNCTION_APP_NAME" >> "$GITHUB_ENV"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: my-func-api/package-lock.json
+
+      - name: Install + build function
+        working-directory: my-func-api
+        run: |
+          npm ci
+          npm run build
+          # Keep deployment package small and production-focused.
+          npm prune --omit=dev
+
+      - name: Create deployment package (zip)
+        run: |
+          cd my-func-api
+          zip -r ../functionapp.zip host.json package.json package-lock.json dist node_modules \
+            -x "**/.git/**" \
+            -x "**/.github/**" \
+            -x "**/.vscode/**" \
+            -x "**/local.settings.json" \
+            -x "**/node_modules/.cache/**"
+
+      - name: Deploy Function App code
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNCTION_APP_NAME }}
+          package: functionapp.zip
