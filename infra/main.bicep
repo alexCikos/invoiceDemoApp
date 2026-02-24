@@ -193,8 +193,7 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
 // Grant runtime identity read access to Key Vault secrets (RBAC mode).
 var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
 
-resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  if (enableKeyVaultRoleAssignment)
+resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableKeyVaultRoleAssignment) {
   name: guid(keyVault.id, uami.id, keyVaultSecretsUserRoleDefinitionId)
   scope: keyVault
   properties: {
