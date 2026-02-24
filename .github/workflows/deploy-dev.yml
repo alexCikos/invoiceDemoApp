@@ -17,8 +17,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: dev
-    env:
-      AZURE_CORE_OUTPUT: none
 
     steps:
       - name: Checkout
@@ -33,6 +31,8 @@ jobs:
 
       - name: Deploy infrastructure (Bicep)
         id: infra
+        env:
+          AZURE_CORE_OUTPUT: none
         run: |
           # Deploy infra first, then pull the function app name from Bicep outputs
           # so app deploy always targets the exact resource created by IaC.
