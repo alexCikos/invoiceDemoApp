@@ -1,6 +1,7 @@
 # Cloud Consultancy Template Knowledge Base.
 
 This repository is a **client-delivery template** for deploying an Azure Function solution with:
+
 - Infrastructure as Code (Bicep)
 - CI/CD via GitHub Actions
 - Passwordless Azure auth via OIDC
@@ -14,6 +15,7 @@ Use this document as the operational source of truth for new client projects.
 ## 1. Template Goal
 
 When you clone this repo for a new client, you should be able to:
+
 1. Provision a client environment quickly.
 2. Deploy app + infra from GitHub with no static cloud secrets.
 3. Hand over a documented, supportable environment.
@@ -67,14 +69,19 @@ flowchart LR
 ## 4. Core Standards (Template Defaults)
 
 1. Runtime: Azure Functions v4 on Node 22.
-  - As of February 24, 2026: Node 20 expected end of support is April 30, 2026; Node 22 is April 30, 2027.
+
+- As of February 24, 2026: Node 20 expected end of support is April 30, 2026; Node 22 is April 30, 2027.
+
 2. Auth: GitHub to Azure via OIDC (`azure/login@v2`), no client secret in workflow.
 3. Packaging: Zip only deployable assets (`host.json`, `package*.json`, `dist`, `node_modules`).
 4. Telemetry: `APPLICATIONINSIGHTS_CONNECTION_STRING` (not instrumentation key-only setup).
 5. Secret strategy:
+
 - Keep secrets in Key Vault.
 - Use managed identity for runtime access.
+
 6. Naming safety:
+
 - Bicep normalizes/truncates prefixes for storage/key vault/function naming constraints.
 
 ---
@@ -82,11 +89,13 @@ flowchart LR
 ## 5. New Client Onboarding (Fast Path)
 
 ### 5.1 Clone Template and Rename Repo
+
 1. Create a new repository from this template.
 2. Clone it locally.
 3. Set new remote.
 
 ### 5.2 Prerequisites
+
 Install and verify:
 
 ```bash
@@ -98,6 +107,7 @@ git --version
 ```
 
 ### 5.3 Register Required Azure Resource Providers (One-Time Per Subscription)
+
 Run with a subscription-level admin identity:
 
 ```bash
@@ -132,6 +142,7 @@ nvm use 22
 ```
 
 ### 5.5 Bootstrap Azure Resources
+
 Use the helper script:
 
 ```bash
@@ -144,6 +155,7 @@ Use the helper script:
 ```
 
 The script will:
+
 1. Ensure Azure login/session.
 2. Create resource group.
 3. Deploy `infra/main.bicep`.
@@ -151,7 +163,9 @@ The script will:
 5. Print the GitHub environment variables you need to configure.
 
 ### 5.6 Configure GitHub Environment
+
 Create environment `dev` and set:
+
 - `AZURE_CLIENT_ID`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
@@ -161,12 +175,15 @@ Create environment `dev` and set:
 - `ENABLE_KEYVAULT_ROLE_ASSIGNMENT` (default `false`; set `true` only if deploy identity has RBAC assignment permissions)
 
 Create environment `prod` with the same variable names, but production values:
+
 - `AZURE_RG` should be production resource group.
 - `NAME_PREFIX` should be production naming prefix.
 - `ENVIRONMENT_NAME` should be `prod`.
 
 ### 5.7 Configure Federated Credential (OIDC)
+
 In the deployment Entra app registration:
+
 1. Add federated credential.
 2. Scenario: GitHub Actions deploying Azure resources.
 3. Scope must match org/repo/environment used by workflow.
@@ -183,6 +200,7 @@ git push -u origin dev
 Then monitor Actions tab for `Deploy Dev (Infra + Function)`.
 
 ### 5.9 Production Deployment Setup
+
 1. Bootstrap production resources (separate RG and prefix recommended):
 
 ```bash
@@ -226,6 +244,7 @@ Set these before first deployment:
 8. Role assignment: Key Vault Secrets User to the user-assigned identity.
 
 Key outputs:
+
 - `functionAppResourceName`
 - `functionAppDefaultHostName`
 - `identityClientId`
@@ -237,11 +256,14 @@ Key outputs:
 ## 8. CI/CD Workflows
 
 ### 8.1 `deploy-dev.yml`
+
 Trigger:
+
 - Push to `dev`
 - Manual dispatch
 
 Flow:
+
 1. Azure login via OIDC.
 2. Deploy infra and fetch function app name from outputs.
 3. Build function code.
@@ -250,14 +272,18 @@ Flow:
 6. Deploy via `Azure/functions-action@v1`.
 
 Security note:
+
 - `AZURE_CORE_OUTPUT=none` is set on the infra deployment step to reduce accidental CLI output leakage.
 
 ### 8.2 `deploy-prod.yml`
+
 Trigger:
+
 - Push to `main`
 - Manual dispatch
 
 Flow:
+
 1. Azure login via OIDC.
 2. Deploy infra and fetch function app name from outputs.
 3. Build function code.
@@ -266,14 +292,18 @@ Flow:
 6. Deploy via `Azure/functions-action@v1`.
 
 Security note:
+
 - Use GitHub Environment protection rules on `prod`.
 
 ### 8.3 `validate-template.yml`
+
 Trigger:
+
 - Pull requests to `dev` or `main`
 - Manual dispatch
 
 Checks:
+
 1. `npm ci`
 2. `npm run typecheck`
 3. `npm run build`
@@ -284,6 +314,7 @@ Checks:
 ## 9. Runtime Configuration in App Code
 
 `hello.ts` demonstrates reading infra-driven app settings:
+
 - `CLIENT_CODE`
 - `ENVIRONMENT_NAME`
 
@@ -316,11 +347,13 @@ curl -X POST "http://localhost:7071/api/hello" \
 Use this after base Azure deployment is stable.
 
 ### 10.1 Access Model
+
 1. Avoid standing high privilege where possible.
 2. Prefer just-in-time elevation with approval trail.
 3. Keep deployment identity and M365 integration identity separate.
 
 ### 10.2 Roles and Responsibilities
+
 - Consultant team:
   - Define required Graph scopes and integration behavior.
   - Build and test integration code.
@@ -329,23 +362,28 @@ Use this after base Azure deployment is stable.
   - Own final approval of production permissions.
 
 ### 10.3 Create Integration App Registration
+
 1. In client tenant, create app registration (single tenant).
 2. Capture:
+
 - Application (client) ID
 - Directory (tenant) ID
 
 ### 10.4 Add Microsoft Graph Permissions
+
 1. Add only required delegated/application permissions.
 2. Document business reason per permission.
 3. Request admin consent from authorized client admin role.
 4. For Microsoft Graph application permissions, plan for a Privileged Role Administrator (or equivalent) to perform consent.
 
 ### 10.5 Store Integration Secrets/Certificates
+
 1. Prefer certificate-based auth over client secret where feasible.
 2. Store secrets/cert references in Key Vault.
 3. Reference Key Vault from Function App settings.
 
 ### 10.6 Operational Controls
+
 1. Audit sign-ins and app consent events.
 2. Review permissions at least quarterly.
 3. Rotate credentials/certificates on a defined schedule.
@@ -355,6 +393,7 @@ Use this after base Azure deployment is stable.
 ## 11. Security Guardrails Checklist
 
 Before go-live:
+
 1. OIDC used for deployment (no hardcoded cloud secrets).
 2. Protected GitHub environments enabled for release branches.
 3. Least privilege RBAC confirmed for deployment identity.
@@ -368,6 +407,7 @@ Before go-live:
 ## 12. Productionization Backlog (Template Evolution)
 
 Priority upgrades:
+
 1. Add `test` and `prod` workflows with required reviewers.
 2. Add smoke test job after deployment.
 3. Move to identity-based host storage when project requirements allow.
@@ -411,6 +451,7 @@ Priority upgrades:
 ## 14. Handover Checklist (Per Client)
 
 Deliver these artifacts at project handover:
+
 1. Repository URL + branch policy summary.
 2. Environment variable inventory.
 3. Azure resource inventory + tagging standard.

@@ -1,4 +1,4 @@
-# Invoice Tracker Cloud Template
+# Invoice Tracker Cloud Template.
 
 This repository is a reusable consultancy template for deploying an Azure Functions solution with Bicep + GitHub OIDC CI/CD.
 
