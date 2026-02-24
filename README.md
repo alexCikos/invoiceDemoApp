@@ -1,4 +1,4 @@
-# Invoice Tracker Cloud Template.
+# Invoice Tracker Cloud Template
 
 This repository is a reusable consultancy template for deploying an Azure Functions solution with Bicep + GitHub OIDC CI/CD.
 
@@ -18,10 +18,6 @@ nvm use
 
 ```bash
 ./scripts/bootstrap-client.sh \
-  <subscription-id> \
-  rg-<client>-invoice-dev \
-  australiaeast \
-  <clientprefix> \
   dev
 ```
 
@@ -32,18 +28,26 @@ az account set --subscription <subscription-id>
 az provider register --namespace Microsoft.KeyVault
 ```
 
-5. Set GitHub environment variables for `dev`.
+5. Set GitHub environment variables for `dev`:
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `AZURE_RG`
 6. Push to `dev` to trigger deployment.
-7. Configure `prod` GitHub environment and push/merge to `main` for production rollout.
+7. Configure `prod` GitHub environment with the same variable names and prod values, then push/merge to `main` for production rollout.
+
+8. Update parameter files for infrastructure naming and environment config:
+- `infra/main.parameters.dev.json`
+- `infra/main.parameters.prod.json`
+
+Recommended naming style:
+- `namePrefix: "<client>-<app>"` (example: `acme-invoice`)
+- Function App result will look like `func-acme-invoice-dev-<uniqueSuffix>`.
 
 Production bootstrap example:
 
 ```bash
 ./scripts/bootstrap-client.sh \
-  <subscription-id> \
-  rg-<client>-invoice-prod \
-  australiaeast \
-  <clientprefixprod> \
   prod
 ```
 
@@ -52,6 +56,6 @@ Production bootstrap example:
 - `.github/workflows/validate-template.yml`
   - Pull request validation (TypeScript + Bicep syntax).
 - `.github/workflows/deploy-dev.yml`
-  - Deploys infrastructure and function code to Azure `dev` environment.
+  - Deploys infrastructure and function code to Azure `dev` environment using `infra/main.parameters.dev.json`.
 - `.github/workflows/deploy-prod.yml`
-  - Deploys infrastructure and function code to Azure `prod` environment.
+  - Deploys infrastructure and function code to Azure `prod` environment using `infra/main.parameters.prod.json`.

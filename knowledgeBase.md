@@ -27,10 +27,10 @@ When you clone this repo for a new client, you should be able to:
 
 - `infra/main.bicep`
   - Provisions storage, Linux Consumption plan, Function App, user-assigned managed identity, Key Vault, Log Analytics, and Application Insights.
-- `infra/main.parameters.example.json`
-  - Copyable parameter file for per-client values.
-- `infra/main.parameters.prod.example.json`
-  - Production-oriented parameter example file.
+- `infra/main.parameters.dev.json`
+  - Dev environment parameter file used by `deploy-dev.yml`.
+- `infra/main.parameters.prod.json`
+  - Prod environment parameter file used by `deploy-prod.yml`.
 - `.github/workflows/deploy-dev.yml`
   - Deploys infra and function code to `dev`.
 - `.github/workflows/deploy-prod.yml`
@@ -147,22 +147,29 @@ Use the helper script:
 
 ```bash
 ./scripts/bootstrap-client.sh \
-  <subscription-id> \
-  rg-<client>-invoice-dev \
-  australiaeast \
-  <clientprefix> \
   dev
 ```
 
 The script will:
 
 1. Ensure Azure login/session.
-2. Create resource group.
-3. Deploy `infra/main.bicep`.
-4. Print key outputs.
-5. Print the GitHub environment variables you need to configure.
+2. Use your current Azure CLI subscription (or an optional subscription override argument).
+3. Create resource group `rg-<namePrefix>-<environmentName>` by default (or optional resource-group override argument).
+4. Deploy `infra/main.bicep` with `infra/main.parameters.dev.json`.
+5. Print key outputs.
+6. Print the GitHub environment variables you need to configure.
 
-### 5.6 Configure GitHub Environment
+### 5.6 Set Infrastructure Parameters (Version-Controlled)
+
+Update these files before deployment:
+- `infra/main.parameters.dev.json`
+- `infra/main.parameters.prod.json`
+
+Recommended naming style for `namePrefix`:
+- `<client>-<app>` (example: `acme-invoice`)
+- This produces readable names like `func-acme-invoice-dev-<uniqueSuffix>`.
+
+### 5.7 Configure GitHub Environment
 
 Create environment `dev` and set:
 
@@ -170,17 +177,12 @@ Create environment `dev` and set:
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 - `AZURE_RG`
-- `NAME_PREFIX`
-- `ENVIRONMENT_NAME` (example: `dev`)
-- `ENABLE_KEYVAULT_ROLE_ASSIGNMENT` (default `false`; set `true` only if deploy identity has RBAC assignment permissions)
 
 Create environment `prod` with the same variable names, but production values:
 
 - `AZURE_RG` should be production resource group.
-- `NAME_PREFIX` should be production naming prefix.
-- `ENVIRONMENT_NAME` should be `prod`.
 
-### 5.7 Configure Federated Credential (OIDC)
+### 5.8 Configure Federated Credential (OIDC)
 
 In the deployment Entra app registration:
 
@@ -188,7 +190,7 @@ In the deployment Entra app registration:
 2. Scenario: GitHub Actions deploying Azure resources.
 3. Scope must match org/repo/environment used by workflow.
 
-### 5.8 First Deployment
+### 5.9 First Deployment
 
 ```bash
 git checkout -b dev
@@ -199,24 +201,21 @@ git push -u origin dev
 
 Then monitor Actions tab for `Deploy Dev (Infra + Function)`.
 
-### 5.9 Production Deployment Setup
+### 5.10 Production Deployment Setup
 
-1. Bootstrap production resources (separate RG and prefix recommended):
+1. Bootstrap production resources (separate RG recommended):
 
 ```bash
 ./scripts/bootstrap-client.sh \
-  <subscription-id> \
-  rg-<client>-invoice-prod \
-  australiaeast \
-  <clientprefixprod> \
   prod
 ```
 
-2. Ensure `prod` GitHub environment exists with required variables.
-3. Add a federated credential for `prod` environment in the deployment app registration.
-4. Configure environment protection rules for `prod` (required reviewers recommended).
-5. Deploy to production by merging/pushing to `main`.
-6. Monitor `Deploy Prod (Infra + Function)` workflow run.
+2. Update `infra/main.parameters.prod.json` for production naming/tags.
+3. Ensure `prod` GitHub environment exists with required variables.
+4. Add a federated credential for `prod` environment in the deployment app registration.
+5. Configure environment protection rules for `prod` (required reviewers recommended).
+6. Deploy to production by merging/pushing to `main`.
+7. Monitor `Deploy Prod (Infra + Function)` workflow run.
 
 ---
 
@@ -265,7 +264,7 @@ Trigger:
 Flow:
 
 1. Azure login via OIDC.
-2. Deploy infra and fetch function app name from outputs.
+2. Deploy infra using `infra/main.parameters.dev.json`, then fetch function app name from outputs.
 3. Build function code.
 4. Prune dev dependencies.
 5. Zip deployable artifacts.
@@ -285,7 +284,7 @@ Trigger:
 Flow:
 
 1. Azure login via OIDC.
-2. Deploy infra and fetch function app name from outputs.
+2. Deploy infra using `infra/main.parameters.prod.json`, then fetch function app name from outputs.
 3. Build function code.
 4. Prune dev dependencies.
 5. Zip deployable artifacts.
@@ -429,7 +428,7 @@ Priority upgrades:
 
 - Infrastructure deploy fails on `Microsoft.Authorization/roleAssignments/write`:
 - Your deploy identity has resource deployment rights but not RBAC assignment rights.
-- Keep `ENABLE_KEYVAULT_ROLE_ASSIGNMENT=false` (default), or grant one of these roles at RG/subscription scope:
+- Keep `enableKeyVaultRoleAssignment=false` in the active parameters file, or grant one of these roles at RG/subscription scope:
   - `User Access Administrator`
   - `Role Based Access Control Administrator`
   - `Owner`
@@ -471,7 +470,7 @@ Deploy infra manually:
 az deployment group create \
   -g <resource-group> \
   -f infra/main.bicep \
-  -p namePrefix=<prefix> environmentName=dev location=australiaeast
+  -p @infra/main.parameters.dev.json
 ```
 
 Build API locally:

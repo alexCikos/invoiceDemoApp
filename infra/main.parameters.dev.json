@@ -6,10 +6,10 @@
       "value": "australiaeast"
     },
     "namePrefix": {
-      "value": "acmeinvprd"
+      "value": "acme-invoice"
     },
     "environmentName": {
-      "value": "prod"
+      "value": "dev"
     },
     "enableKeyVaultRoleAssignment": {
       "value": false
@@ -19,7 +19,7 @@
         "client": "acme",
         "owner": "cloud-consultancy",
         "costCenter": "invoice-platform",
-        "criticality": "production"
+        "application": "invoice"
       }
     }
   }

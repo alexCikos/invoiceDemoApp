@@ -3,7 +3,7 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources')
 param location string = resourceGroup().location
 
-@description('Client/resource prefix. Use lowercase letters, numbers, and optional hyphens.')
+@description('Client-app naming prefix used in resource names, e.g. "acme-invoice".')
 @minLength(2)
 @maxLength(20)
 param namePrefix string
@@ -22,18 +22,21 @@ param tags object = {}
 @description('Create Key Vault RBAC role assignment for the Function managed identity. Requires roleAssignments/write permission.')
 param enableKeyVaultRoleAssignment bool = false
 
-// Normalize the prefix once so names are predictable and valid across resources.
-var normalizedPrefix = toLower(replace(replace(namePrefix, '-', ''), '_', ''))
+// Keep a hyphenated slug for human-readable names.
+var workloadSlug = toLower(replace(replace(namePrefix, '_', '-'), ' ', '-'))
+
+// Also keep an alphanumeric variant for resources with stricter naming rules.
+var normalizedPrefix = toLower(replace(replace(replace(namePrefix, '-', ''), '_', ''), ' ', ''))
 var suffix = uniqueString(resourceGroup().id)
 
 // Resource-name safety guards for platform-specific constraints.
 var storageName = take('sa${normalizedPrefix}${suffix}', 24)
 var keyVaultName = toLower(take('kv${normalizedPrefix}${substring(suffix, 0, 10)}', 24))
-var functionAppName = toLower(take('func-${normalizedPrefix}-${environmentName}-${suffix}', 60))
-var planName = toLower(take('${normalizedPrefix}-${environmentName}-asp', 40))
-var uamiName = toLower(take('${normalizedPrefix}-${environmentName}-uami', 64))
-var logAnalyticsName = toLower(take('${normalizedPrefix}-${environmentName}-law', 63))
-var appInsightsName = toLower(take('${normalizedPrefix}-${environmentName}-appi', 260))
+var functionAppName = toLower(take('func-${workloadSlug}-${environmentName}-${suffix}', 60))
+var planName = toLower(take('${workloadSlug}-${environmentName}-asp', 40))
+var uamiName = toLower(take('${workloadSlug}-${environmentName}-uami', 64))
+var logAnalyticsName = toLower(take('${workloadSlug}-${environmentName}-law', 63))
+var appInsightsName = toLower(take('${workloadSlug}-${environmentName}-appi', 260))
 
 var commonTags = union({
   workload: 'invoice-tracker'
@@ -179,7 +182,7 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'CLIENT_CODE'
-          value: normalizedPrefix
+          value: workloadSlug
         }
         {
           name: 'ENVIRONMENT_NAME'
