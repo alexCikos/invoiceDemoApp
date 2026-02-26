@@ -22,6 +22,24 @@ param tags object = {}
 @description('Create Key Vault RBAC role assignment for the Function managed identity. Requires roleAssignments/write permission.')
 param enableKeyVaultRoleAssignment bool = false
 
+@description('Microsoft Entra tenant ID used for Graph app-only token requests.')
+param graphTenantId string = ''
+
+@description('Application (client) ID for the Graph runtime app registration.')
+param graphClientId string = ''
+
+@description('Key Vault secret name that stores the Graph app client secret value.')
+param graphClientSecretName string = 'GRAPH-CLIENT-SECRET'
+
+@description('Graph scope used for client_credentials token requests.')
+param graphScope string = 'https://graph.microsoft.com/.default'
+
+@description('SharePoint site ID in Graph format: "<host>,<siteCollectionId>,<siteId>".')
+param sharePointSiteId string = ''
+
+@description('SharePoint list ID (GUID) used by the reminder automation.')
+param sharePointListId string = ''
+
 // Keep a hyphenated slug for human-readable names.
 var workloadSlug = toLower(replace(replace(namePrefix, '_', '-'), ' ', '-'))
 
@@ -144,6 +162,8 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
   properties: {
     serverFarmId: plan.id
     httpsOnly: true
+    // Ensure Key Vault references are resolved using the user-assigned identity.
+    keyVaultReferenceIdentity: uami.id
     siteConfig: {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
@@ -187,6 +207,32 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'ENVIRONMENT_NAME'
           value: environmentName
+        }
+
+        // Graph + SharePoint integration settings consumed by function code.
+        {
+          name: 'GRAPH_TENANT_ID'
+          value: graphTenantId
+        }
+        {
+          name: 'GRAPH_CLIENT_ID'
+          value: graphClientId
+        }
+        {
+          name: 'GRAPH_CLIENT_SECRET'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVault.properties.vaultUri}secrets/${graphClientSecretName}/)'
+        }
+        {
+          name: 'GRAPH_SCOPE'
+          value: graphScope
+        }
+        {
+          name: 'SHAREPOINT_SITE_ID'
+          value: sharePointSiteId
+        }
+        {
+          name: 'SHAREPOINT_LIST_ID'
+          value: sharePointListId
         }
       ]
     }

@@ -11,6 +11,24 @@
     "environmentName": {
       "value": "prod"
     },
+    "graphTenantId": {
+      "value": "REPLACE_WITH_TENANT_ID"
+    },
+    "graphClientId": {
+      "value": "REPLACE_WITH_GRAPH_APP_CLIENT_ID"
+    },
+    "graphClientSecretName": {
+      "value": "GRAPH-CLIENT-SECRET"
+    },
+    "graphScope": {
+      "value": "https://graph.microsoft.com/.default"
+    },
+    "sharePointSiteId": {
+      "value": "REPLACE_WITH_SHAREPOINT_SITE_ID"
+    },
+    "sharePointListId": {
+      "value": "REPLACE_WITH_SHAREPOINT_LIST_ID"
+    },
     "enableKeyVaultRoleAssignment": {
       "value": false
     },

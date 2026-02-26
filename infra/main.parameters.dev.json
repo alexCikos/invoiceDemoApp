@@ -11,6 +11,24 @@
     "environmentName": {
       "value": "dev"
     },
+    "graphTenantId": {
+      "value": "3c0fc79e-7767-4d47-a381-bc36273b80e1"
+    },
+    "graphClientId": {
+      "value": "f2eb6232-8110-4e4b-9056-dbb877510e06"
+    },
+    "graphClientSecretName": {
+      "value": "GRAPH-CLIENT-SECRET"
+    },
+    "graphScope": {
+      "value": "https://graph.microsoft.com/.default"
+    },
+    "sharePointSiteId": {
+      "value": "cikosautomation.sharepoint.com,2f912b96-da62-4b40-ace9-611351f5d621,8a9b9765-fa72-432e-8ccb-dc739d492802"
+    },
+    "sharePointListId": {
+      "value": "a30858ba-135b-4766-b7f3-84dff105b727"
+    },
     "enableKeyVaultRoleAssignment": {
       "value": false
     },
