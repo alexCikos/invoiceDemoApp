@@ -486,17 +486,26 @@ curl -sS -G \
 
 Grant is at **site** scope, not list scope.
 
-1. Use admin grant token/context:
-- Graph Explorer signed in as admin, or
-- Admin app token with permission to manage site grants.
-
-2. Grant `write` to runtime app:
+1. Prepare required values:
 
 ```bash
 SITE_ID='<site-id>'
 TARGET_APP_ID='<graph-runtime-client-id>'
 TARGET_APP_NAME='app-<client>-invoice-graph-dev'
+```
 
+2. Get an admin token used for the grant call:
+- Option A: Graph Explorer signed in as admin (copy token from Graph Explorer).
+- Option B: Azure CLI token from an admin user session.
+
+```bash
+ADMIN_TOKEN=$(az account get-access-token --resource-type ms-graph --query accessToken -o tsv)
+echo "Admin token length: ${#ADMIN_TOKEN}"
+```
+
+3. Create site permission grant with `POST /sites/{siteId}/permissions`:
+
+```bash
 curl -sS -X POST \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -511,16 +520,35 @@ curl -sS -X POST \
         }
       }
     ]
-  }"
+  }" | jq .
 ```
 
-3. Verify grant:
+Expected success shape:
+- `roles` contains `write`
+- `grantedToIdentitiesV2[0].application.id` equals your runtime app ID
+- A permission `id` is returned (keep it if you want to delete this grant later)
+
+4. Verify site permission grant exists:
 
 ```bash
 curl -sS \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions"
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" | jq .
 ```
+
+Optional focused verification for the target runtime app:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" \
+  | jq --arg APPID "$TARGET_APP_ID" '.value[] | select(.grantedToIdentitiesV2[0].application.id == $APPID) | {id,roles,app:.grantedToIdentitiesV2[0].application}'
+```
+
+5. Important behavior notes:
+- This grant is on the **site**, not directly on a list.
+- Runtime app must still have Graph Application permission `Sites.Selected` with admin consent.
+- Using the runtime app token for this POST call usually fails; use an admin token/context.
 
 ### 10.6 Validate Runtime Token and Access
 
