@@ -169,6 +169,14 @@ Update these files before deployment:
 - `infra/main.parameters.dev.json`
 - `infra/main.parameters.prod.json`
 
+Required Graph/SharePoint parameters in each file:
+- `graphTenantId`
+- `graphClientId`
+- `graphClientSecretName`
+- `graphScope`
+- `sharePointSiteId`
+- `sharePointListId`
+
 Recommended naming style for `namePrefix`:
 - `<client>-<app>` (example: `acme-invoice`)
 - This produces readable names like `func-acme-invoice-dev-<uniqueSuffix>`.
@@ -560,11 +568,16 @@ curl -sS -G \
 ### 10.7 Store Graph Secret in Key Vault and Wire Function Settings
 
 1. Store runtime app secret in Key Vault:
-- Secret name example: `graph-client-secret-dev`
+- Secret name must match `graphClientSecretName` in your parameters file.
+- Template default: `GRAPH-CLIENT-SECRET`
 
 ```bash
 KV_NAME='<key-vault-name>'
-az keyvault secret set --vault-name "$KV_NAME" --name graph-client-secret-dev --value '<graph-client-secret-value>'
+GRAPH_CLIENT_SECRET_NAME='GRAPH-CLIENT-SECRET'
+az keyvault secret set \
+  --vault-name "$KV_NAME" \
+  --name "$GRAPH_CLIENT_SECRET_NAME" \
+  --value '<graph-client-secret-value>'
 ```
 
 2. If portal shows unauthorized on Key Vault secrets, assign yourself a data role:
@@ -583,7 +596,8 @@ az role assignment create \
 
 3. Ensure Function runtime identity can read secrets:
 - Assign `Key Vault Secrets User` on the vault to the Function app identity.
-- If Function App uses user-assigned identity, bind Key Vault reference resolution to that identity.
+- Bicep already sets `properties.keyVaultReferenceIdentity` to the user-assigned identity.
+- Run the `az resource update` command below only for older environments created before this template change.
 
 ```bash
 RG='<resource-group>'
@@ -597,6 +611,7 @@ az role assignment create \
   --role "Key Vault Secrets User" \
   --scope "$KV_SCOPE"
 
+# Legacy fix only (not required for newly deployed environments from this template)
 az resource update \
   -g "$RG" \
   -n "$APP_NAME" \
@@ -604,12 +619,14 @@ az resource update \
   --set properties.keyVaultReferenceIdentity="$UAMI_ID"
 ```
 
-4. Set Function App application settings:
-- `GRAPH_TENANT_ID`
-- `GRAPH_CLIENT_ID`
-- `GRAPH_CLIENT_SECRET` = `@Microsoft.KeyVault(SecretUri=https://<kv-name>.vault.azure.net/secrets/<secret-name>/)`
-- `SHAREPOINT_SITE_ID`
-- `SHAREPOINT_LIST_ID`
+4. Set Graph/SharePoint values in parameter files (not manual app-settings commands):
+- `graphTenantId`
+- `graphClientId`
+- `graphClientSecretName`
+- `sharePointSiteId`
+- `sharePointListId`
+
+These are pushed into Function App settings by Bicep on every deploy.
 
 5. Restart Function App after app settings / Key Vault identity changes.
 
@@ -690,6 +707,15 @@ Priority upgrades:
   - Function user-assigned identity has `Key Vault Secrets User` on vault.
   - `properties.keyVaultReferenceIdentity` is set to that identity resource ID.
   - Function app was restarted after settings/identity updates.
+
+- Function endpoint returns `Missing required app settings for Graph/SharePoint integration` after a redeploy:
+- Infra deploy likely replaced app settings from Bicep and Graph/SharePoint parameters are blank or placeholders.
+- Recheck `infra/main.parameters.<env>.json` values for:
+  - `graphTenantId`
+  - `graphClientId`
+  - `graphClientSecretName`
+  - `sharePointSiteId`
+  - `sharePointListId`
 
 - Infrastructure deploy fails with `MissingSubscriptionRegistration` for `Microsoft.KeyVault`:
 - The subscription has not registered the Key Vault resource provider yet.
