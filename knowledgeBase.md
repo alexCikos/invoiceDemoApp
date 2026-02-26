@@ -583,6 +583,26 @@ az role assignment create \
 
 3. Ensure Function runtime identity can read secrets:
 - Assign `Key Vault Secrets User` on the vault to the Function app identity.
+- If Function App uses user-assigned identity, bind Key Vault reference resolution to that identity.
+
+```bash
+RG='<resource-group>'
+APP_NAME='<function-app-name>'
+UAMI_ID=$(az functionapp identity show -g "$RG" -n "$APP_NAME" --query "keys(userAssignedIdentities)[0]" -o tsv)
+UAMI_PRINCIPAL_ID=$(az identity show --ids "$UAMI_ID" --query principalId -o tsv)
+
+az role assignment create \
+  --assignee-object-id "$UAMI_PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Key Vault Secrets User" \
+  --scope "$KV_SCOPE"
+
+az resource update \
+  -g "$RG" \
+  -n "$APP_NAME" \
+  --resource-type "Microsoft.Web/sites" \
+  --set properties.keyVaultReferenceIdentity="$UAMI_ID"
+```
 
 4. Set Function App application settings:
 - `GRAPH_TENANT_ID`
@@ -590,6 +610,11 @@ az role assignment create \
 - `GRAPH_CLIENT_SECRET` = `@Microsoft.KeyVault(SecretUri=https://<kv-name>.vault.azure.net/secrets/<secret-name>/)`
 - `SHAREPOINT_SITE_ID`
 - `SHAREPOINT_LIST_ID`
+
+5. Restart Function App after app settings / Key Vault identity changes.
+
+Note:
+- `az functionapp config appsettings set` intentionally returns `"value": null` for all settings in CLI output. This is masking behavior, not a failed update.
 
 ### 10.8 Local Development Behavior
 
@@ -658,6 +683,13 @@ Priority upgrades:
   - Token contains `roles: ['Sites.Selected']`
   - Site permission grant exists in `GET /sites/{siteId}/permissions`
   - Wait 2-5 minutes after permission/consent changes and retry.
+
+- Function endpoint fails with `Graph token request failed ... invalid_client`, but manual token test with Key Vault secret value succeeds:
+- Function runtime is likely not resolving Key Vault reference with the intended managed identity.
+- Recheck:
+  - Function user-assigned identity has `Key Vault Secrets User` on vault.
+  - `properties.keyVaultReferenceIdentity` is set to that identity resource ID.
+  - Function app was restarted after settings/identity updates.
 
 - Infrastructure deploy fails with `MissingSubscriptionRegistration` for `Microsoft.KeyVault`:
 - The subscription has not registered the Key Vault resource provider yet.
