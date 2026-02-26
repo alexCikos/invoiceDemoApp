@@ -4,6 +4,7 @@ This repository is a reusable consultancy template for deploying an Azure Functi
 
 Primary documentation lives in:
 - [knowledgeBase.md](./knowledgeBase.md)
+- See Section 10 in `knowledgeBase.md` for the end-to-end Graph + SharePoint setup runbook.
 
 ## Quick Start
 
@@ -44,6 +45,10 @@ az provider register --namespace Microsoft.KeyVault
 Recommended naming style:
 - `namePrefix: "<client>-<app>"` (example: `acme-invoice`)
 - Function App result will look like `func-acme-invoice-dev-<uniqueSuffix>`.
+
+SharePoint demo import files:
+- `sample-data/invoice-tracker-au-sharepoint-import.xlsx`
+- `sample-data/invoice-tracker-au-sharepoint-import.csv`
 
 Production bootstrap example:
 

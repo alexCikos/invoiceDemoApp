@@ -39,6 +39,10 @@ When you clone this repo for a new client, you should be able to:
   - PR validation workflow (TypeScript + Bicep syntax checks).
 - `my-func-api/src/functions/hello.ts`
   - Sample HTTP function showing runtime configuration usage.
+- `sample-data/invoice-tracker-au-sharepoint-import.xlsx`
+  - SharePoint import-ready demo data with reminder-control columns.
+- `sample-data/invoice-tracker-au-sharepoint-import.csv`
+  - CSV copy of the same import-ready dataset.
 - `scripts/bootstrap-client.sh`
   - One-command bootstrap for a new client resource group + deployment.
 - `.nvmrc`
@@ -359,6 +363,14 @@ Checks:
 - `CLIENT_CODE`
 - `ENVIRONMENT_NAME`
 
+`sharepointListTest.ts` demonstrates reading Graph + SharePoint integration settings:
+
+- `GRAPH_TENANT_ID`
+- `GRAPH_CLIENT_ID`
+- `GRAPH_CLIENT_SECRET`
+- `SHAREPOINT_SITE_ID`
+- `SHAREPOINT_LIST_ID`
+
 This teaches how Bicep app settings flow into runtime behavior.
 
 Local test:
@@ -381,53 +393,216 @@ curl -X POST "http://localhost:7071/api/hello" \
   -d '{"name":"Alex"}'
 ```
 
+Graph/SharePoint connectivity test endpoint:
+
+```bash
+curl "http://localhost:7071/api/sharepoint-list-test?top=3"
+```
+
 ---
 
-## 10. Client M365 Integration Playbook
+## 10. Client M365 Integration Playbook (SharePoint List + Graph)
 
 Use this after base Azure deployment is stable.
 
-### 10.1 Access Model
+### 10.1 Identity Model (Keep Roles Separate)
 
-1. Avoid standing high privilege where possible.
-2. Prefer just-in-time elevation with approval trail.
-3. Keep deployment identity and M365 integration identity separate.
+Use three identities with different purposes:
 
-### 10.2 Roles and Responsibilities
+1. Deployment identity (GitHub OIDC app registration):
+- Used only by GitHub Actions to deploy Azure resources.
 
-- Consultant team:
-  - Define required Graph scopes and integration behavior.
-  - Build and test integration code.
-- Client admin team:
-  - Grant tenant consent and approve requested permissions.
-  - Own final approval of production permissions.
+2. Graph runtime identity (app registration):
+- Used by Function code at runtime.
+- App permissions: `Sites.Selected` (and `Mail.Send` only if sending emails via Graph).
 
-### 10.3 Create Integration App Registration
+3. Admin grant identity (human admin session, Graph Explorer, or dedicated admin app):
+- Used only to grant site-level permissions to the runtime app.
+- Needs enough privilege to call `POST /sites/{siteId}/permissions` (for example `Sites.FullControl.All` in admin context).
 
-1. In client tenant, create app registration (single tenant).
+### 10.2 Create Graph Runtime App Registration
+
+1. Create app registration per environment (recommended):
+- `app-<client>-invoice-graph-dev`
+- `app-<client>-invoice-graph-prod`
+
 2. Capture:
+- `GRAPH_CLIENT_ID` = Application (client) ID
+- `GRAPH_TENANT_ID` = Directory (tenant) ID
 
-- Application (client) ID
-- Directory (tenant) ID
+3. API permissions:
+- Microsoft Graph -> Application permissions -> `Sites.Selected`
+- Optional: Microsoft Graph -> Application permissions -> `Mail.Send`
 
-### 10.4 Add Microsoft Graph Permissions
+4. Click `Grant admin consent` for the tenant.
 
-1. Add only required delegated/application permissions.
-2. Document business reason per permission.
-3. Request admin consent from authorized client admin role.
-4. For Microsoft Graph application permissions, plan for a Privileged Role Administrator (or equivalent) to perform consent.
+5. Create a client secret and capture the **Value** (not Secret ID).
 
-### 10.5 Store Integration Secrets/Certificates
+### 10.3 Prepare SharePoint Demo List
 
-1. Prefer certificate-based auth over client secret where feasible.
-2. Store secrets/cert references in Key Vault.
-3. Reference Key Vault from Function App settings.
+1. Create list in a team site path (`/sites/...`), not personal OneDrive path (`/personal/...`).
+2. Import sample data for demos:
+- `sample-data/invoice-tracker-au-sharepoint-import.xlsx`
+3. Use Yes/No columns for reminder controls:
+- `ReminderEnabled`
+- `DoNotContact`
+- `EscalationEnabled`
 
-### 10.6 Operational Controls
+### 10.4 Resolve Site and List IDs
 
-1. Audit sign-ins and app consent events.
-2. Review permissions at least quarterly.
-3. Rotate credentials/certificates on a defined schedule.
+1. Get user token for discovery:
+
+```bash
+TOKEN=$(az account get-access-token --resource-type ms-graph --query accessToken -o tsv)
+```
+
+2. Resolve site ID:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $TOKEN" \
+  "https://graph.microsoft.com/v1.0/sites/<tenant>.sharepoint.com:/sites/<site-name>?$select=id,webUrl,displayName"
+```
+
+3. Resolve list ID:
+
+```bash
+SITE_ID='<site-id>'
+curl -sS -G \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode "\$select=id,displayName" \
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists"
+```
+
+### 10.5 Grant Site Access to Runtime App (`Sites.Selected`)
+
+Grant is at **site** scope, not list scope.
+
+1. Use admin grant token/context:
+- Graph Explorer signed in as admin, or
+- Admin app token with permission to manage site grants.
+
+2. Grant `write` to runtime app:
+
+```bash
+SITE_ID='<site-id>'
+TARGET_APP_ID='<graph-runtime-client-id>'
+TARGET_APP_NAME='app-<client>-invoice-graph-dev'
+
+curl -sS -X POST \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" \
+  -d "{
+    \"roles\": [\"write\"],
+    \"grantedToIdentitiesV2\": [
+      {
+        \"application\": {
+          \"id\": \"${TARGET_APP_ID}\",
+          \"displayName\": \"${TARGET_APP_NAME}\"
+        }
+      }
+    ]
+  }"
+```
+
+3. Verify grant:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions"
+```
+
+### 10.6 Validate Runtime Token and Access
+
+1. Request runtime app token:
+
+```bash
+TOKEN_JSON=$(curl -s -X POST "https://login.microsoftonline.com/${GRAPH_TENANT_ID}/oauth2/v2.0/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=${GRAPH_CLIENT_ID}" \
+  -d "client_secret=${GRAPH_CLIENT_SECRET}" \
+  -d "scope=https%3A%2F%2Fgraph.microsoft.com%2F.default" \
+  -d "grant_type=client_credentials")
+export APP_TOKEN=$(echo "$TOKEN_JSON" | jq -r .access_token)
+```
+
+2. Confirm token has Graph app-role claim:
+
+```bash
+python3 - <<'PY'
+import os, json, base64
+t=os.environ["APP_TOKEN"].split(".")[1]
+t += "=" * (-len(t)%4)
+claims=json.loads(base64.urlsafe_b64decode(t))
+print("appid:", claims.get("appid"))
+print("roles:", claims.get("roles"))
+PY
+```
+
+Expected:
+- `roles` includes `Sites.Selected`
+
+3. Test list read with app token:
+
+```bash
+SITE_ID='<site-id>'
+LIST_ID='<list-id>'
+
+curl -sS -G \
+  -H "Authorization: Bearer ${APP_TOKEN}" \
+  --data-urlencode "\$top=3" \
+  --data-urlencode "\$expand=fields(\$select=InvoiceNumber,Status,DueDate,Balance,ReminderEnabled,DoNotContact,ClientEmail,NextReminderDate)" \
+  "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/${LIST_ID}/items"
+```
+
+### 10.7 Store Graph Secret in Key Vault and Wire Function Settings
+
+1. Store runtime app secret in Key Vault:
+- Secret name example: `graph-client-secret-dev`
+
+```bash
+KV_NAME='<key-vault-name>'
+az keyvault secret set --vault-name "$KV_NAME" --name graph-client-secret-dev --value '<graph-client-secret-value>'
+```
+
+2. If portal shows unauthorized on Key Vault secrets, assign yourself a data role:
+- `Key Vault Secrets Officer` (for setup)
+
+```bash
+KV_SCOPE=$(az keyvault show -n "$KV_NAME" --query id -o tsv)
+USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+
+az role assignment create \
+  --assignee-object-id "$USER_OBJECT_ID" \
+  --assignee-principal-type User \
+  --role "Key Vault Secrets Officer" \
+  --scope "$KV_SCOPE"
+```
+
+3. Ensure Function runtime identity can read secrets:
+- Assign `Key Vault Secrets User` on the vault to the Function app identity.
+
+4. Set Function App application settings:
+- `GRAPH_TENANT_ID`
+- `GRAPH_CLIENT_ID`
+- `GRAPH_CLIENT_SECRET` = `@Microsoft.KeyVault(SecretUri=https://<kv-name>.vault.azure.net/secrets/<secret-name>/)`
+- `SHAREPOINT_SITE_ID`
+- `SHAREPOINT_LIST_ID`
+
+### 10.8 Local Development Behavior
+
+1. Keep same setting names locally.
+2. In `local.settings.json`, use real local secret value for `GRAPH_CLIENT_SECRET`.
+3. Do not use Key Vault reference syntax in local settings; local runtime does not resolve it automatically.
+
+### 10.9 Operational Controls
+
+1. Rotate Graph client secret before expiry.
+2. Keep deployment app and runtime Graph app separated.
+3. Audit app permissions and site grants quarterly.
+4. Remove stale grants/app registrations during client offboarding.
 
 ---
 
@@ -469,6 +644,21 @@ Priority upgrades:
   - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RG` in the GitHub environment.
   - Contributor assignment exists for `<AZURE_CLIENT_ID>` on the target resource group.
 
+- Graph token request fails with `AADSTS7000215` / `invalid_client`:
+- Usually means wrong secret value (using Secret ID instead of Secret Value), expired secret, or wrong app ID.
+- Recreate secret in app registration and use the **Value** field.
+
+- Graph token decodes with `roles: None`:
+- Admin consent for application permission is missing or wrong permission type was added.
+- Ensure Microsoft Graph **Application** permission `Sites.Selected` is present and `Grant admin consent` was completed.
+
+- Graph API returns `generalException` for runtime app token:
+- Most often caused by missing app-role claim, missing site grant, or propagation delay.
+- Recheck:
+  - Token contains `roles: ['Sites.Selected']`
+  - Site permission grant exists in `GET /sites/{siteId}/permissions`
+  - Wait 2-5 minutes after permission/consent changes and retry.
+
 - Infrastructure deploy fails with `MissingSubscriptionRegistration` for `Microsoft.KeyVault`:
 - The subscription has not registered the Key Vault resource provider yet.
 - Register it once at subscription scope:
@@ -489,6 +679,10 @@ Priority upgrades:
 
 - Key Vault reference fails:
 - Check RBAC role assignment and vault network restrictions.
+
+- Key Vault portal shows `You are unauthorized to view these contents` even though you are `Owner`:
+- `Owner` is management-plane authorization and does not automatically provide secrets data-plane access in RBAC mode.
+- Assign a Key Vault data role to your user (for example `Key Vault Secrets Officer`) and wait for propagation.
 
 - Graph calls fail with 403:
 - Verify tenant admin consent, scope type (delegated vs application), and token flow.
@@ -561,3 +755,11 @@ AZURE_CONFIG_DIR=/tmp/azcfg az bicep build --file infra/main.bicep
   - https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/grant-admin-consent
 - Azure naming rules:
   - https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules
+- Microsoft Graph list items:
+  - https://learn.microsoft.com/en-us/graph/api/listitem-list?view=graph-rest-1.0
+- Microsoft Graph site permissions (`POST /sites/{siteId}/permissions`):
+  - https://learn.microsoft.com/en-us/graph/api/site-post-permissions?view=graph-rest-1.0&tabs=http
+- Selected permissions overview (`Sites.Selected`, `Lists.SelectedOperations.Selected`):
+  - https://learn.microsoft.com/en-us/graph/permissions-selected-overview
+- Microsoft Graph paging:
+  - https://learn.microsoft.com/en-us/graph/paging
