@@ -1,5 +1,11 @@
 # Cloud Consultancy Template Knowledge Base.
 
+Primary onboarding path now lives in the ordered docs map:
+- Start at `README.md`
+- Then follow `docs/00-start-here.md` through `docs/07-security-handover.md`
+
+Use this file as the detailed deep reference.
+
 This repository is a **client-delivery template** for deploying an Azure Function solution with:
 
 - Infrastructure as Code (Bicep)
@@ -666,6 +672,7 @@ az role assignment list \
 - Assign `Key Vault Secrets User` on the vault to the Function app identity.
 - Bicep already sets `properties.keyVaultReferenceIdentity` to the user-assigned identity.
 - Run the `az resource update` command below only for older environments created before this template change.
+- If Key Vault reference refresh still reports `identityType: SystemAssigned` and `AccessToKeyVaultDenied`, add system-assigned identity and grant it the same vault role as fallback.
 
 ```bash
 RG='<resource-group>'
@@ -685,6 +692,20 @@ az resource update \
   -n "$APP_NAME" \
   --resource-type "Microsoft.Web/sites" \
   --set properties.keyVaultReferenceIdentity="$UAMI_ID"
+
+# Fallback path when config reference resolver still uses SystemAssigned:
+# zsh note: quote '[system]' to avoid glob expansion.
+az functionapp identity assign \
+  -g "$RG" \
+  -n "$APP_NAME" \
+  --identities '[system]' "$UAMI_ID"
+
+SYS_PID=$(az functionapp identity show -g "$RG" -n "$APP_NAME" --query principalId -o tsv)
+az role assignment create \
+  --assignee-object-id "$SYS_PID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "Key Vault Secrets User" \
+  --scope "$KV_SCOPE"
 ```
 
 4. Set Graph/SharePoint values in parameter files (not manual app-settings commands):
@@ -805,6 +826,12 @@ Priority upgrades:
 
 - Key Vault reference fails:
 - Check RBAC role assignment and vault network restrictions.
+- If config-reference refresh output shows:
+  - `identityType: SystemAssigned`
+  - `status: AccessToKeyVaultDenied`
+  - then either:
+    - bind `properties.keyVaultReferenceIdentity` to UAMI, or
+    - add system-assigned identity and grant it `Key Vault Secrets User` on the vault.
 
 - Key Vault portal shows `You are unauthorized to view these contents` even though you are `Owner`:
 - `Owner` is management-plane authorization and does not automatically provide secrets data-plane access in RBAC mode.

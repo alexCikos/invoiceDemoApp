@@ -1,67 +1,39 @@
 # Invoice Tracker Cloud Template
 
-This repository is a reusable consultancy template for deploying an Azure Functions solution with Bicep + GitHub OIDC CI/CD.
+This repo is a client-ready template for:
+- Azure Functions (Node/TypeScript)
+- Bicep infrastructure
+- GitHub Actions deployment with OIDC
+- Microsoft Graph + SharePoint list integration
 
-Primary documentation lives in:
-- [knowledgeBase.md](./knowledgeBase.md)
-- See Section 10 in `knowledgeBase.md` for the end-to-end Graph + SharePoint setup runbook.
+## Read In Order (Runbook Map)
 
-## Quick Start
+Follow these in sequence when cloning for a new client:
 
-1. Ensure prerequisites are installed (`node`, `az`, `func`, `git`).
-2. Pin Node runtime locally:
+1. [Start Here: Architecture + Path](./docs/00-start-here.md)
+2. [Bootstrap Dev Environment](./docs/01-bootstrap-dev.md)
+3. [GitHub OIDC Deployment Setup](./docs/02-github-oidc-deploy.md)
+4. [Promote To Production](./docs/03-promote-to-prod.md)
+5. [Graph + SharePoint Integration](./docs/04-graph-sharepoint-integration.md)
+6. [Secrets, App Settings, Local Dev](./docs/05-secrets-runtime-local.md)
+7. [Troubleshooting Playbook](./docs/06-troubleshooting.md)
+8. [Security + Handover Checklist](./docs/07-security-handover.md)
 
-```bash
-nvm use
-```
+## Core Files
 
-3. Bootstrap a new client environment:
-
-```bash
-./scripts/bootstrap-client.sh \
-  dev
-```
-
-4. If this is a fresh subscription, register required providers once:
-
-```bash
-az account set --subscription <subscription-id>
-az provider register --namespace Microsoft.KeyVault
-```
-
-5. Create a deployment Entra app registration (OIDC) and grant it `Contributor` on the target resource group.
-6. Set GitHub environment variables for `dev`:
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-- `AZURE_RG`
-7. Push to `dev` to trigger deployment.
-8. Configure `prod` GitHub environment with the same variable names and prod values, then push/merge to `main` for production rollout.
-
-9. Update parameter files for infrastructure naming and environment config:
+- `infra/main.bicep`
 - `infra/main.parameters.dev.json`
 - `infra/main.parameters.prod.json`
+- `.github/workflows/deploy-dev.yml`
+- `.github/workflows/deploy-prod.yml`
+- `scripts/bootstrap-client.sh`
+- `my-func-api/src/functions/sharepointListTest.ts`
 
-Recommended naming style:
-- `namePrefix: "<client>-<app>"` (example: `acme-invoice`)
-- Function App result will look like `func-acme-invoice-dev-<uniqueSuffix>`.
+## Sample Data
 
-SharePoint demo import files:
 - `sample-data/invoice-tracker-au-sharepoint-import.xlsx`
 - `sample-data/invoice-tracker-au-sharepoint-import.csv`
 
-Production bootstrap example:
+## Deep Reference
 
-```bash
-./scripts/bootstrap-client.sh \
-  prod
-```
-
-## Template Workflows
-
-- `.github/workflows/validate-template.yml`
-  - Pull request validation (TypeScript + Bicep syntax).
-- `.github/workflows/deploy-dev.yml`
-  - Deploys infrastructure and function code to Azure `dev` environment using `infra/main.parameters.dev.json`.
-- `.github/workflows/deploy-prod.yml`
-  - Deploys infrastructure and function code to Azure `prod` environment using `infra/main.parameters.prod.json`.
+- Full detailed reference: [knowledgeBase.md](./knowledgeBase.md)
