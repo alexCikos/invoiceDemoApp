@@ -12,10 +12,10 @@
       "value": "prod"
     },
     "graphTenantId": {
-      "value": "REPLACE_WITH_TENANT_ID"
+      "value": "3c0fc79e-7767-4d47-a381-bc36273b80e1"
     },
     "graphClientId": {
-      "value": "REPLACE_WITH_GRAPH_APP_CLIENT_ID"
+      "value": "71f414f6-dd75-4d36-9c26-04d9084ba9b1"
     },
     "graphClientSecretName": {
       "value": "GRAPH-CLIENT-SECRET"
@@ -24,10 +24,10 @@
       "value": "https://graph.microsoft.com/.default"
     },
     "sharePointSiteId": {
-      "value": "REPLACE_WITH_SHAREPOINT_SITE_ID"
+      "value": "cikosautomation.sharepoint.com,2f912b96-da62-4b40-ace9-611351f5d621,8a9b9765-fa72-432e-8ccb-dc739d492802"
     },
     "sharePointListId": {
-      "value": "REPLACE_WITH_SHAREPOINT_LIST_ID"
+      "value": "9fe8368a-9678-4d05-b86b-700ba820e898"
     },
     "enableKeyVaultRoleAssignment": {
       "value": false

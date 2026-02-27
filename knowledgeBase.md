@@ -497,10 +497,39 @@ TARGET_APP_NAME='app-<client>-invoice-graph-dev'
 2. Get an admin token used for the grant call:
 - Option A: Graph Explorer signed in as admin (copy token from Graph Explorer).
 - Option B: Azure CLI token from an admin user session.
+- Option C (recommended for repeatable setup): dedicated admin-grant app token (client credentials).
 
 ```bash
 ADMIN_TOKEN=$(az account get-access-token --resource-type ms-graph --query accessToken -o tsv)
 echo "Admin token length: ${#ADMIN_TOKEN}"
+```
+
+Dedicated admin-grant app token example:
+
+```bash
+TENANT_ID='<tenant-id>'
+ADMIN_GRANT_APP_ID='<app-id-with-sites-fullcontrol-all>'
+ADMIN_GRANT_APP_SECRET='<admin-grant-app-secret-value>'
+
+ADMIN_TOKEN=$(curl -sS -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=${ADMIN_GRANT_APP_ID}" \
+  -d "client_secret=${ADMIN_GRANT_APP_SECRET}" \
+  -d "scope=https%3A%2F%2Fgraph.microsoft.com%2F.default" \
+  -d "grant_type=client_credentials" | jq -r .access_token)
+```
+
+Optional claim check (admin grant token should include app role such as `Sites.FullControl.All`):
+
+```bash
+python3 - <<'PY'
+import os, json, base64
+t=os.environ["ADMIN_TOKEN"].split(".")[1]
+t += "=" * (-len(t)%4)
+c=json.loads(base64.urlsafe_b64decode(t))
+print("scp:", c.get("scp"))
+print("roles:", c.get("roles"))
+PY
 ```
 
 3. Create site permission grant with `POST /sites/{siteId}/permissions`:
@@ -512,7 +541,7 @@ curl -sS -X POST \
   "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/permissions" \
   -d "{
     \"roles\": [\"write\"],
-    \"grantedToIdentitiesV2\": [
+    \"grantedToIdentities\": [
       {
         \"application\": {
           \"id\": \"${TARGET_APP_ID}\",
@@ -549,6 +578,7 @@ curl -sS \
 - This grant is on the **site**, not directly on a list.
 - Runtime app must still have Graph Application permission `Sites.Selected` with admin consent.
 - Using the runtime app token for this POST call usually fails; use an admin token/context.
+- If you get `accessDenied` using a delegated user token (`scp` only, `roles: None`), use the dedicated admin-grant app token path above.
 
 ### 10.6 Validate Runtime Token and Access
 
@@ -612,6 +642,10 @@ az keyvault secret set \
 - `Key Vault Secrets Officer` (for setup)
 
 ```bash
+# Confirm you are in the expected tenant/subscription context first.
+az account show --query "{sub:id, tenant:tenantId, user:user.name}" -o table
+
+KV_NAME='<key-vault-name>'
 KV_SCOPE=$(az keyvault show -n "$KV_NAME" --query id -o tsv)
 USER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
 
@@ -620,6 +654,12 @@ az role assignment create \
   --assignee-principal-type User \
   --role "Key Vault Secrets Officer" \
   --scope "$KV_SCOPE"
+
+# Verify assignment exists on this vault scope.
+az role assignment list \
+  --assignee-object-id "$USER_OBJECT_ID" \
+  --scope "$KV_SCOPE" \
+  -o table
 ```
 
 3. Ensure Function runtime identity can read secrets:

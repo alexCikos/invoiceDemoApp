@@ -1,0 +1,25 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#sites('cikosautomation.sharepoint.com%2C2f912b96-da62-4b40-ace9-611351f5d621%2C8a9b9765-fa72-432e-8ccb-dc739d492802')/lists(id,displayName)",
+  "value": [
+    {
+      "@odata.etag": "\"9fe8368a-9678-4d05-b86b-700ba820e898,4\"",
+      "id": "9fe8368a-9678-4d05-b86b-700ba820e898",
+      "displayName": "Invoice Tracker Prod"
+    },
+    {
+      "@odata.etag": "\"a30858ba-135b-4766-b7f3-84dff105b727,88\"",
+      "id": "a30858ba-135b-4766-b7f3-84dff105b727",
+      "displayName": "Invoice Tracker Dev"
+    },
+    {
+      "@odata.etag": "\"3f042090-5dce-44d7-9572-ba5c77576074,7\"",
+      "id": "3f042090-5dce-44d7-9572-ba5c77576074",
+      "displayName": "Documents"
+    },
+    {
+      "@odata.etag": "\"83496090-416a-4c30-8136-ff91b878651e,0\"",
+      "id": "83496090-416a-4c30-8136-ff91b878651e",
+      "displayName": "Web Template Extensions"
+    }
+  ]
+}
