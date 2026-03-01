@@ -1,0 +1,484 @@
+{
+  "generatedAt": "2026-03-01T09:46:28.543Z",
+  "siteId": "cikosautomation.sharepoint.com,2f912b96-da62-4b40-ace9-611351f5d621,8a9b9765-fa72-432e-8ccb-dc739d492802",
+  "listId": "a30858ba-135b-4766-b7f3-84dff105b727",
+  "columns": [
+    {
+      "id": "fa564e0f-0c70-4ab9-b863-0177e6ddd247",
+      "displayName": "Title",
+      "internalName": "Title",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "82642ec8-ef9b-478f-acf9-31f7d45fbc31",
+      "displayName": "InvoiceNumber",
+      "internalName": "LinkTitle",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "76d13cd2-1bae-45a5-8b74-545b87b65037",
+      "displayName": "Color Tag",
+      "internalName": "_ColorTag",
+      "type": "text",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "3a6b296c-3f50-445c-a13f-9c679ea9dda3",
+      "displayName": "Compliance Asset Id",
+      "internalName": "ComplianceAssetId",
+      "type": "text",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "789e1fa8-dd17-40d4-8443-b3973e970a59",
+      "displayName": "ClientName",
+      "internalName": "field_1",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "9116ca79-1afc-423e-bdc2-6c662a2c120f",
+      "displayName": "ClientEmail",
+      "internalName": "field_2",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d26ec422-d3b1-4a41-adcc-93f8bdc8bda6",
+      "displayName": "ProjectName",
+      "internalName": "field_3",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "0b8b6966-815b-490d-995e-2eb8fd4620c1",
+      "displayName": "InvoiceDate",
+      "internalName": "field_4",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d2025818-e4e7-4684-a12e-20111eae3b9f",
+      "displayName": "DueDate",
+      "internalName": "field_5",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "0b29cde6-83a4-4cdf-a84e-cc7a8fb04270",
+      "displayName": "Currency",
+      "internalName": "field_6",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "c41f6e37-94de-462e-8648-8b44f0a30737",
+      "displayName": "Subtotal",
+      "internalName": "field_7",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "ec7ca4de-f5b3-4ef3-99ba-df3fc4908481",
+      "displayName": "TaxRate",
+      "internalName": "field_8",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "04393af8-54f3-45a7-85b1-4504a8099cce",
+      "displayName": "TaxAmount",
+      "internalName": "field_9",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "632a18af-ef5c-4505-9bb7-a31adf5e4699",
+      "displayName": "TotalAmount",
+      "internalName": "field_10",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "23846b10-40f8-4fe2-a862-7a0fa53a3b37",
+      "displayName": "AmountPaid",
+      "internalName": "field_11",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "5b19e1b0-4582-447c-936f-3b548b8a60ea",
+      "displayName": "Balance",
+      "internalName": "field_12",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "0ec5b802-f6f7-4180-a2ee-b470839e757a",
+      "displayName": "Status",
+      "internalName": "field_13",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "a0b47be1-6298-4bbc-b3b0-2152099c2250",
+      "displayName": "PaymentTerms",
+      "internalName": "field_14",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "5dae3558-0ebe-4d42-830d-3179f7ada7cb",
+      "displayName": "PaymentMethod",
+      "internalName": "field_15",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "273110a4-2013-4eee-bd9b-17dd11da1f75",
+      "displayName": "PurchaseOrderNumber",
+      "internalName": "field_16",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "e02febaa-0ccd-42e8-a618-2664f95c1f2f",
+      "displayName": "SentDate",
+      "internalName": "field_17",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "347bd5d4-941d-4d28-862e-f26e2665941e",
+      "displayName": "PaidDate",
+      "internalName": "field_18",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "4453657a-3f26-460b-aed0-2d4441e7b68a",
+      "displayName": "LastReminderDate",
+      "internalName": "field_19",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d03db9e5-7966-4065-a0ec-2d6da74c0a9f",
+      "displayName": "Owner",
+      "internalName": "field_20",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "20bfad2a-5bf1-4c38-941c-da2df509a3e5",
+      "displayName": "Notes",
+      "internalName": "field_21",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "e7c50a7c-da4e-4a93-99ec-8cf4f9545173",
+      "displayName": "ReminderEnabled",
+      "internalName": "field_22",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "3ea9b00a-ec90-47e5-89b3-8bc1daa31062",
+      "displayName": "DoNotContact",
+      "internalName": "field_23",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "fd709c52-4628-4847-a2a5-58f9c315baa0",
+      "displayName": "ReminderPausedUntil",
+      "internalName": "field_24",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "62d6aa22-a7e1-4add-951c-e66a3288da0e",
+      "displayName": "ReminderFrequencyDays",
+      "internalName": "field_25",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "17dcff78-070c-476d-9783-69d2ec8a45e8",
+      "displayName": "NextReminderDate",
+      "internalName": "field_26",
+      "type": "text",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "e83e019f-05e4-44ea-9e4e-9ccb5d601b46",
+      "displayName": "EscalationEnabled",
+      "internalName": "field_27",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "93fecbe8-8fa2-4987-9674-404d32587771",
+      "displayName": "EscalationThresholdDays",
+      "internalName": "field_28",
+      "type": "number",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d5054010-7177-47e4-aedd-9dcc2c8c3a4f",
+      "displayName": "CollectionPriority",
+      "internalName": "field_29",
+      "type": "choice",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "1d22ea11-1e32-424e-89ab-9fedbadb6ce1",
+      "displayName": "ID",
+      "internalName": "ID",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "c042a256-787d-4a6f-8a8a-cf6ab767f12d",
+      "displayName": "Content Type",
+      "internalName": "ContentType",
+      "type": "unknown",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "28cf69c5-fa48-462a-b5cd-27b6f9d2bd5f",
+      "displayName": "Modified",
+      "internalName": "Modified",
+      "type": "dateTime",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "8c06beca-0777-48f7-91c7-6da68bc07b69",
+      "displayName": "Created",
+      "internalName": "Created",
+      "type": "dateTime",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "1df5e554-ec7e-46a6-901d-d85a3881cb18",
+      "displayName": "Created By",
+      "internalName": "Author",
+      "type": "personOrGroup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d31655d1-1d5b-4511-95a1-7a09e9b75bf2",
+      "displayName": "Modified By",
+      "internalName": "Editor",
+      "type": "personOrGroup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "dce8262a-3ae9-45aa-aab4-83bd75fb738a",
+      "displayName": "Version",
+      "internalName": "_UIVersionString",
+      "type": "text",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "67df98f4-9dec-48ff-a553-29bece9c5bf4",
+      "displayName": "Attachments",
+      "internalName": "Attachments",
+      "type": "unknown",
+      "readOnly": false,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "503f1caa-358e-4918-9094-4a2cdc4bc034",
+      "displayName": "Edit",
+      "internalName": "Edit",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "bc91a437-52e7-49e1-8c4e-4698904b2b6d",
+      "displayName": "Title",
+      "internalName": "LinkTitleNoMenu",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "081c6e4c-5c14-4f20-b23e-1a71ceb6a67c",
+      "displayName": "Type",
+      "internalName": "DocIcon",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "b824e17e-a1b3-426e-aecf-f0184d900485",
+      "displayName": "Item Child Count",
+      "internalName": "ItemChildCount",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "960ff01f-2b6d-4f1b-9c3f-e19ad8927341",
+      "displayName": "Folder Child Count",
+      "internalName": "FolderChildCount",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "ccc1037f-f65e-434a-868e-8c98af31fe29",
+      "displayName": "Label setting",
+      "internalName": "_ComplianceFlags",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "d4b6480a-4bed-4094-9a52-30181ea38f1d",
+      "displayName": "Retention label",
+      "internalName": "_ComplianceTag",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "92be610e-ddbb-49f4-b3b1-5c2bc768df8f",
+      "displayName": "Retention label Applied",
+      "internalName": "_ComplianceTagWrittenTime",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "418d7676-2d6f-42cf-a16a-e43d2971252a",
+      "displayName": "Label applied by",
+      "internalName": "_ComplianceTagUserId",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "8382d247-72a9-44b1-9794-7b177edc89f3",
+      "displayName": "Item is a Record",
+      "internalName": "_IsRecord",
+      "type": "unknown",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "6bfaba20-36bf-44b5-a1b2-eb6346d49716",
+      "displayName": "App Created By",
+      "internalName": "AppAuthor",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    },
+    {
+      "id": "e08400f3-c779-4ed2-a18c-ab7f34caa318",
+      "displayName": "App Modified By",
+      "internalName": "AppEditor",
+      "type": "lookup",
+      "readOnly": true,
+      "hidden": false,
+      "required": false
+    }
+  ]
+}
