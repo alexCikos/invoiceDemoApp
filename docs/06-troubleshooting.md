@@ -39,6 +39,55 @@ Check:
 2. Site grant exists in `GET /sites/{siteId}/permissions`.
 3. Wait a few minutes after consent/grant changes.
 
+## Exchange / Mail.Send RBAC
+
+### `AADServicePrincipalNotFound` on `New-ServicePrincipal`
+
+You used the wrong object ID.
+Use the **Enterprise application service principal object ID** in the same tenant:
+
+```bash
+az ad sp show --id <app-client-id> --query id -o tsv
+```
+
+### `The command you tried to run isn't currently allowed ... Enable-OrganizationCustomization`
+
+Run:
+
+```powershell
+Enable-OrganizationCustomization -Confirm:$false
+Get-OrganizationConfig | Format-List IsDehydrated
+```
+
+Expected: `IsDehydrated : False`.
+
+### `You don't have sufficient permissions ... manager of the group`
+
+Your account lacks Exchange RBAC authority for that role group.
+Use a tenant admin account with Exchange org-level rights or have the client run the command.
+
+### `Test-ServicePrincipalAuthorization ... InScope False`
+
+Common causes:
+1. Scope group does not exist.
+2. Mailbox is not a member of scope group.
+3. Management scope was created with empty DN (`MemberOfGroup -eq ''`).
+
+Verify and fix:
+
+```powershell
+Get-DistributionGroup -Identity <scope-group>
+Get-DistributionGroupMember -Identity <scope-group> -ResultSize Unlimited
+Get-ManagementScope -Identity <scope-name> | Format-List Name,RecipientFilter
+```
+
+If needed, reset scope filter:
+
+```powershell
+$groupDn = (Get-DistributionGroup -Identity <scope-group>).DistinguishedName
+Set-ManagementScope -Identity <scope-name> -RecipientRestrictionFilter "MemberOfGroup -eq '$groupDn'"
+```
+
 ## Key Vault / Secrets
 
 ### `ForbiddenByRbac` when setting secret
@@ -73,4 +122,3 @@ Quote it:
 ```bash
 --identities '[system]'
 ```
-

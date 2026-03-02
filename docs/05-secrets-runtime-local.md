@@ -118,11 +118,10 @@ npm run start
 Test endpoint:
 
 ```bash
-curl "http://localhost:7071/api/sharepoint-list-test?top=3"
+curl "http://localhost:7071/api/overdue-invoice-reminder"
 ```
 
 ## 7) Next
 
 Continue with:
 - [06 - Troubleshooting Playbook](./06-troubleshooting.md)
-

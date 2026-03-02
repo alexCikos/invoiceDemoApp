@@ -139,8 +139,117 @@ curl -sS -G \
   "https://graph.microsoft.com/v1.0/sites/${SITE_ID}/lists/<list-id>/items" | jq .
 ```
 
-## 7) Next
+## 7) Add Mail Send Permission (Runtime App)
+
+For invoice reminders, the runtime app also needs Graph **Application** permission:
+- `Mail.Send`
+
+Grant admin consent after adding it.
+
+Notes:
+- Use **Application** permission (not delegated).
+- In app-only flow, send mail with:
+  - `POST /v1.0/users/{senderMailbox}/sendMail`
+- Do not use `/me/sendMail` for client-credentials flow.
+
+## 8) Scope Mail Sending With Exchange App RBAC (Recommended For Prod)
+
+Run this once per environment (for example separate scope names for `dev` and `prod`).
+
+### 8.1 Prereqs (macOS)
+
+```bash
+brew install --cask powershell
+pwsh
+```
+
+In PowerShell:
+
+```powershell
+Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
+Import-Module ExchangeOnlineManagement
+Connect-ExchangeOnline -UserPrincipalName "<exchange-admin-upn>"
+```
+
+### 8.2 Set Variables
+
+```powershell
+$appId = "<runtime-app-client-id>"
+$senderMailbox = "invoicereminders@<tenant>.onmicrosoft.com"
+$scopeGroupName = "InvoiceReminderScope-Prod"
+$scopeName = "InvoiceReminderMailboxScope-Prod"
+$roleAssignmentName = "InvoiceReminder-MailSend-Prod"
+$exoSpDisplayName = "Invoice Reminder App Prod"
+```
+
+Get the service principal object ID for this app in the current tenant:
+
+```powershell
+$spObjectId = (az ad sp show --id $appId --query id -o tsv).Trim()
+$spObjectId
+```
+
+### 8.3 One-Time Tenant Customization Check
+
+```powershell
+Enable-OrganizationCustomization -Confirm:$false
+Get-OrganizationConfig | Format-List IsDehydrated
+```
+
+Expected:
+- `IsDehydrated : False`
+
+### 8.4 Create Exchange Mapping, Scope Group, and Role Assignment
+
+```powershell
+if (-not (Get-ServicePrincipal -Identity $spObjectId -ErrorAction SilentlyContinue)) {
+  New-ServicePrincipal -AppId $appId -ObjectId $spObjectId -DisplayName $exoSpDisplayName
+}
+
+if (-not (Get-DistributionGroup -Identity $scopeGroupName -ErrorAction SilentlyContinue)) {
+  New-DistributionGroup -Name $scopeGroupName -Type Security
+}
+
+if (-not (Get-DistributionGroupMember -Identity $scopeGroupName -ResultSize Unlimited | Where-Object { $_.PrimarySmtpAddress -eq $senderMailbox })) {
+  Add-DistributionGroupMember -Identity $scopeGroupName -Member $senderMailbox
+}
+
+$groupDn = (Get-DistributionGroup -Identity $scopeGroupName).DistinguishedName
+
+if (-not (Get-ManagementScope -Identity $scopeName -ErrorAction SilentlyContinue)) {
+  New-ManagementScope -Name $scopeName -RecipientRestrictionFilter "MemberOfGroup -eq '$groupDn'"
+} else {
+  Set-ManagementScope -Identity $scopeName -RecipientRestrictionFilter "MemberOfGroup -eq '$groupDn'"
+}
+
+if (-not (Get-ManagementRoleAssignment -Identity $roleAssignmentName -ErrorAction SilentlyContinue)) {
+  New-ManagementRoleAssignment -Name $roleAssignmentName -Role "Application Mail.Send" -App $appId -CustomResourceScope $scopeName
+}
+```
+
+### 8.5 Validate Scope Works
+
+```powershell
+Get-ManagementScope -Identity $scopeName | Format-List Name,RecipientFilter
+
+Test-ServicePrincipalAuthorization -Identity $appId -Resource $senderMailbox |
+  Format-Table RoleName,GrantedPermissions,AllowedResourceScope,InScope
+```
+
+Expected:
+- Role contains `Application Mail.Send`
+- `InScope = True`
+
+## 9) Prod/Client Checklist
+
+For each client tenant and each environment:
+1. Create environment-specific sender mailbox.
+2. Grant `Mail.Send` (Application) + admin consent on the matching runtime app.
+3. Create environment-specific Exchange scope group and management scope.
+4. Validate with `Test-ServicePrincipalAuthorization` before code rollout.
+5. Store mailbox address in app settings (for example `REMINDER_SENDER_MAILBOX`).
+
+## 10) Next
 
 Continue with:
 - [05 - Secrets, App Settings, Local Dev](./05-secrets-runtime-local.md)
-
