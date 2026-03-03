@@ -14,3 +14,6 @@ yarn-error.log*
 
 # Azure azrite
 tmp/
+__azurite_db*
+__blobstorage__
+__queuestorage__
