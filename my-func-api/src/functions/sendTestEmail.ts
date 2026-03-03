@@ -12,6 +12,7 @@ const DEFAULT_SUBJECT = "Invoice Tracker: test email";
 const DEFAULT_MESSAGE =
   "This is a test email from the Invoice Tracker function app.";
 const DEFAULT_SENDER_MAILBOX =
+  process.env.SHARED_MAILBOX ??
   "automationsdev@cikosAutomation.onmicrosoft.com";
 
 type SendTestEmailBody = {

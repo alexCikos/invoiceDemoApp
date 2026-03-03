@@ -32,6 +32,9 @@
     "enableKeyVaultRoleAssignment": {
       "value": false
     },
+    "sharedMailBox": {
+      "value": "automationsdev@cikosAutomation.onmicrosoft.com"
+    },
     "tags": {
       "value": {
         "client": "acme",

@@ -40,6 +40,9 @@ param sharePointSiteId string = ''
 @description('SharePoint list ID (GUID) used by the reminder automation.')
 param sharePointListId string = ''
 
+@description('Shared mailbox address for sending emails.')
+param sharedMailBox string = ''
+
 // Keep a hyphenated slug for human-readable names.
 var workloadSlug = toLower(replace(replace(namePrefix, '_', '-'), ' ', '-'))
 
@@ -56,11 +59,14 @@ var uamiName = toLower(take('${workloadSlug}-${environmentName}-uami', 64))
 var logAnalyticsName = toLower(take('${workloadSlug}-${environmentName}-law', 63))
 var appInsightsName = toLower(take('${workloadSlug}-${environmentName}-appi', 260))
 
-var commonTags = union({
-  workload: 'invoice-tracker'
-  environment: environmentName
-  managedBy: 'bicep'
-}, tags)
+var commonTags = union(
+  {
+    workload: 'invoice-tracker'
+    environment: environmentName
+    managedBy: 'bicep'
+  },
+  tags
+)
 
 // ---- Storage account (host storage for Functions) ----
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -234,13 +240,20 @@ resource func 'Microsoft.Web/sites@2023-01-01' = {
           name: 'SHAREPOINT_LIST_ID'
           value: sharePointListId
         }
+        {
+          name: 'SHARED_MAILBOX'
+          value: sharedMailBox
+        }
       ]
     }
   }
 }
 
 // Grant runtime identity read access to Key Vault secrets (RBAC mode).
-var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
 
 resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableKeyVaultRoleAssignment) {
   name: guid(keyVault.id, uami.id, keyVaultSecretsUserRoleDefinitionId)
