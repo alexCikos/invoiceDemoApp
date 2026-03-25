@@ -9,9 +9,11 @@ It is also being shaped as a reusable template repo. The goal is not just to pro
 - Azure Functions v4 with Node.js and TypeScript
 - Bicep-based Azure infrastructure
 - GitHub Actions deployment using OIDC instead of static Azure secrets
+- GitHub Actions test automation for the Functions app
 - Microsoft Graph app-only authentication
 - SharePoint list reads via Graph
 - Email sending via Graph
+- Node.js built-in tests for workflow, handler, mapper, and client behavior
 - Separation of concerns between function handlers, feature workflows, integration clients, and field mapping
 
 ## Current Status
@@ -21,18 +23,19 @@ The repository is intentionally ahead in architecture and deployment setup, whil
 Implemented now:
 
 - Azure infrastructure for a Linux Function App, Storage Account, Key Vault, Log Analytics, Application Insights, and a user-assigned managed identity
-- GitHub Actions workflows for validation and environment-based deployment
+- GitHub Actions workflows for validation, function tests, and environment-based deployment
 - Graph token acquisition helper that accepts explicit config
 - SharePoint client for reading list items with explicit IDs and filter input
 - Email client for Graph `sendMail`
 - Mapping layer for converting SharePoint internal fields into invoice-friendly names
 - Azure Function handler and workflow for the overdue reminder flow
+- Automated tests covering workflow behavior, reminder handler setup, field mapping, and Graph client error handling
 
 Still in progress:
 
 - Business rules for filtering, pacing, and duplicate-send protection
 - Delivery confirmation beyond Graph request acceptance
-- More complete tests around workflow behavior
+- Broader integration and end-to-end coverage against live Azure and Graph dependencies
 
 ## Architecture
 
@@ -101,6 +104,8 @@ flowchart LR
 - [invoice-tracker-functions/src/tools/getGraphAccessToken.ts](./invoice-tracker-functions/src/tools/getGraphAccessToken.ts)
 - [invoice-tracker-functions/src/tools/errorHandlers.ts](./invoice-tracker-functions/src/tools/errorHandlers.ts)
 - [invoice-tracker-functions/src/mapper/mapInvoiceFields.ts](./invoice-tracker-functions/src/mapper/mapInvoiceFields.ts)
+- [invoice-tracker-functions/tests/](./invoice-tracker-functions/tests/)
+- [.github/workflows/test-functions.yml](./.github/workflows/test-functions.yml)
 - [scripts/bootstrap-client.sh](./scripts/bootstrap-client.sh)
 
 ## Local Development
@@ -125,6 +130,16 @@ cd invoice-tracker-functions
 npm ci
 npm run start
 ```
+
+Run the local quality checks before pushing:
+
+```bash
+cd invoice-tracker-functions
+npm run typecheck
+npm test
+```
+
+`npm test` performs a clean rebuild and then runs the Node.js test suite in `invoice-tracker-functions/tests/`.
 
 The function app reads runtime configuration from `invoice-tracker-functions/local.settings.json` when running locally. The main settings used by the current integration layer are:
 
@@ -168,8 +183,11 @@ Bootstrap dev infrastructure:
 The GitHub workflows currently included are:
 
 - `.github/workflows/validate-template.yml`
+- `.github/workflows/test-functions.yml`
 - `.github/workflows/deploy-dev.yml`
 - `.github/workflows/deploy-prod.yml`
+
+`test-functions.yml` runs on pull requests that touch `invoice-tracker-functions/`, and on pushes that change the Functions app or the workflow itself. It installs dependencies, runs `npm run typecheck`, and then runs `npm test`.
 
 ## Docs Map
 
@@ -196,7 +214,7 @@ The current email templating pattern supports that goal:
 
 ## Next Steps
 
-- Add workflow-level tests around decision logic
+- Add higher-level integration tests against non-production dependencies
 - Introduce idempotency safeguards to reduce duplicate sends
 - Improve operational visibility with richer logs and alerts
 - Extend the template to support multiple reminder workflows cleanly

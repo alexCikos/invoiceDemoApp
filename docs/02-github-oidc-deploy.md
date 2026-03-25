@@ -51,7 +51,14 @@ az role assignment list \
 `prod` environment variables:
 - Same variable names, production values.
 
-## 5) Deploy Dev
+## 5) Repo Workflows To Expect
+
+- `validate-template.yml` runs on pull requests to `dev` and `main`.
+- `test-functions.yml` runs on pull requests that touch `invoice-tracker-functions/`, and on pushes that change the Functions app or the workflow itself.
+- `deploy-dev.yml` runs on pushes to `dev`.
+- `deploy-prod.yml` runs on pushes to `main`.
+
+## 6) Deploy Dev
 
 ```bash
 git checkout dev
@@ -64,8 +71,9 @@ or first push:
 git push -u origin dev
 ```
 
-## 6) Next
+After a Function App change is pushed to `dev`, expect both the `Test Functions` workflow and the `Deploy Dev` workflow to run.
+
+## 7) Next
 
 Continue with:
 - [03 - Promote To Production](./03-promote-to-prod.md)
-

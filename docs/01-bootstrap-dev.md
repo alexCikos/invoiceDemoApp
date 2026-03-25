@@ -25,6 +25,19 @@ nvm install 22
 nvm use 22
 ```
 
+## 1a) Verify Local Function App Checks
+
+Before wiring Azure resources, verify the Functions project builds and tests cleanly:
+
+```bash
+cd invoice-tracker-functions
+npm ci
+npm run typecheck
+npm test
+```
+
+`npm test` rebuilds `dist/` and runs the Node.js test suite under `invoice-tracker-functions/tests/`.
+
 ## 2) One-Time Provider Registration (Per Subscription)
 
 ```bash
@@ -67,4 +80,3 @@ This creates/updates dev infra and prints outputs.
 
 Continue with:
 - [02 - GitHub OIDC Deployment Setup](./02-github-oidc-deploy.md)
-

@@ -2,6 +2,19 @@
 
 ## Azure Login / Deployment
 
+### `Test Functions` workflow fails
+
+Reproduce the same checks locally:
+
+```bash
+cd invoice-tracker-functions
+npm ci
+npm run typecheck
+npm test
+```
+
+`npm test` performs a clean rebuild before running the Node.js tests, so you do not need to clear `dist/` manually first.
+
 ### `No subscriptions found for ***`
 
 Check:

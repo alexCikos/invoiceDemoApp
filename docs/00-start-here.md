@@ -12,9 +12,14 @@ This template gives you a repeatable way to deliver an invoice automation platfo
 
 Deployment path:
 1. Push to `dev` or `main`.
-2. GitHub Actions logs into Azure via OIDC.
+2. The branch deployment workflow logs into Azure via OIDC.
 3. Bicep deploys/updates infra.
 4. Function code is built and deployed as zip.
+
+Quality path:
+1. Pull requests run template validation and, when function code changes, the `Test Functions` workflow.
+2. Pushes that touch `invoice-tracker-functions/` also run the same function test workflow.
+3. Local equivalent for the Functions app is `npm run typecheck && npm test`.
 
 Runtime path:
 1. Function registration loads JSON-backed reminder config and creates one HTTP handler per config entry.

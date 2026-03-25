@@ -32,16 +32,19 @@ Set:
 ```bash
 git checkout main
 git pull origin main
-git merge dev
+git merge --ff-only dev
 git push origin main
 ```
+
+Using `--ff-only` keeps production promotion linear and prevents an accidental merge commit when `main` has drifted from the tested `dev` tip.
 
 ## 5) Why `pull` Here?
 
 `git pull origin main` ensures local `main` has latest remote commits before merge, so you do not merge into stale history.
 
+After the push, `Deploy Prod` runs. If the promotion includes Function App changes, `Test Functions` also runs on the same push.
+
 ## 6) Next
 
 Continue with:
 - [04 - Graph + SharePoint Integration](./04-graph-sharepoint-integration.md)
-
